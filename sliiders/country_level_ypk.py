@@ -721,10 +721,16 @@ def smooth_fill(
 
     Parameters
     ----------
-    da1,da2 : :class:`xarray.DataArray`
-        DataArrays indexed by storm and time
+    da1_in, da2_in : xarray.DataArray
+        DataArrays indexed by other dimension (defined by `other_dim`) and time
+        dimension (defined by `time_dim`)
     fill_all_null : bool, optional
-        If True, f
+        If True, fills even when there are no known (or non-NA) values in `da1_in`
+    time_dim : str, optional
+        variable name to indicate the time dimension, default set to be "time"
+    other_dim : str, optional
+        variable name to indicate the other dimension, default set to be "storm" but
+        can also indicate country or region names, for instance
 
     Returns
     -------
