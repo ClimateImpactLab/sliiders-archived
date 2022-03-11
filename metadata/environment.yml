@@ -1,0 +1,18 @@
+channels:
+  - conda-forge
+dependencies:
+  - dask_gateway
+  - dask
+  - distributed
+  - gcsfs
+  - geopandas
+  - jupyterlab
+  - numpy
+  - oct2py
+  - pandas
+  - pip
+  - scipy
+  - tqdm
+  - xarray
+  - pip:
+    - rhg_compute_tools
