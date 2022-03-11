@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6010452.svg)](https://doi.org/10.5281/zenodo.6010452)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6012027.svg)](https://doi.org/10.5281/zenodo.6012027)
+
 # Sea Level Impacts Input Dataset by Elevation, Region, and Scenario (SLIIDERS)
 
 This repository hosts the code used to create the [SLIIDERS-ECON](https://doi.org/10.5281/zenodo.6010452) and [SLIIDERS-SLR](https://doi.org/10.5281/zenodo.6012027) datasets. The SLIIDERS datasets contain current and forecasted physical and socioeconomic metrics from 2000-2100 - organized by coastal segment, elevation slice, and scenario - for use as inputs to global coastal climate impacts research.
@@ -11,7 +14,7 @@ Most users will want to just use the datasets directly, accessible at the DOIs l
 pip install -e sliiders
 ```
 
-In addition, you will need to have [Dask Gateway](gateway.dask.org) installed and configured to execute the parallel, Dask-backed workflows contained in this repo. Advanced users can use other Dask Cluster backends (including simply running [Dask Distributed](distributed.dask.org) locally), but doing so will require modifying the cluster setup portion of notebooks that employ dask.
+In addition, you will need to have [Dask Gateway](https://gateway.dask.org) installed and configured to execute the parallel, Dask-backed workflows contained in this repo. Advanced users can use other Dask Cluster backends (including simply running [Dask Distributed](https://distributed.dask.org) locally), but doing so will require modifying the cluster setup portion of notebooks that employ dask.
 
 A Conda environment file better specifying a full environment needed to execute all of the workflows in this repo is in development and will be posted when complete.
 
