@@ -135,8 +135,12 @@ def yearly_growth(df, header="v_"):
 def helper_extrap_using_closest(
     prob_ctry, after, avail_yr, end_yr, tgt_df, sse_good_df, wgt_power, hdr="v_"
 ):
-    """Helper function for the
+    """Helper function for the function `extrap_using_closest`, which is used in
+    detecting similar-trajectory countries and using the said trajectories to impute
+    the missing values of another country
 
+    Parameters
+    ----------
     prob_ctry : str
         country code needing extrapolation (projection)
     after : boolean
@@ -703,21 +707,30 @@ def smooth_fill(
     time_dim="time",
     other_dim="storm",
 ):
-    """Fill values from 2D dataarray ``da1`` with values from 2D dataarray ``da2``. If
-    filling the beginning or end of a storm, pin the ``da2`` value to the ``da1`` value
-    at the first/last point of overlap and then use the ``da2`` values only to estimate
-    the `change` in values over time, using a ratio of predicted value in the desired
-    time to the reference time. This can also be used when, for example, ``da1`` refers
-    to RMW and ``da2`` refers to ROCI. In this case, you want to define
-    ``fill_all_null=False`` to avoid filling RMW with ROCI when no RMW values are
-    available but some ROCI values are available
+    """Fill values from 2D dataarray `da1_in` with values from 2D dataarray
+    `da2_in`.
+
+    For instance, one may use this with storm datasets. If filling the beginning or end
+    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of 
+    overlap and then use the `da2_in` values only to estimate the "change" in values 
+    over time, using a ratio of predicted value in the desired time to the reference
+    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in` 
+    refers to ROCI. In this case, you want to define ``fill_all_null=False`` to avoid
+    filling RMW with ROCI when no RMW values are available but some ROCI values are 
+    available.
 
     Parameters
     ----------
-    da1,da2 : :class:`xarray.DataArray`
-        DataArrays indexed by storm and time
+    da1_in, da2_in : xarray.DataArray
+        DataArrays indexed by other dimension (defined by `other_dim`) and time
+        dimension (defined by `time_dim`)
     fill_all_null : bool, optional
-        If True, f
+        If True, fills even when there are no known (or non-NA) values in `da1_in`
+    time_dim : str, optional
+        variable name to indicate the time dimension, default set to be "time"
+    other_dim : str, optional
+        variable name to indicate the other dimension, default set to be "storm" but
+        can also indicate country or region names, for instance
 
     Returns
     -------
