@@ -1,51 +1,9 @@
 # various functions used for the country-level information workflow
-
-from pathlib import Path
-from typing import Any, Sequence, Union
-
 import numpy as np
 import pandas as pd
-import xarray as xr
-from shapely.geometry import MultiPolygon, Point, Polygon
 from tqdm.auto import tqdm
 
-from .settings import PPP_CCODE_IF_MSNG, SSP_PROJ_ORG_SER, PATH_PWT_RAW
-
-
-def iso_poly_box_getter(iso, shp_df):
-    """Get `box`es or rectangular areas of coordinates that contains each Polygon
-    belonging to the shapefile of the country specified by the ISO code.
-
-    Parameters
-    ----------
-    iso : str
-        ISO code of the country that we are interested in
-    shp_df : geopandas DataFrame
-        with the indices being the iso codes and with a column called `geometry`
-        containing the shapefile of the relevant countries
-
-    Returns
-    -------
-    list of tuples (of length four)
-        containing the smallest and largest x and y coordinates (longitudes and
-        latitudes)
-
-    """
-    shp = shp_df.loc[iso, "geometry"]
-    if type(shp) == MultiPolygon:
-        shps = shp.geoms
-    else:
-        shps = [shp]
-
-    poly_bounds = []
-    for poly in shps:
-        xx = np.array(poly.exterior.coords.xy[0])
-        yy = np.array(poly.exterior.coords.xy[1])
-        xmin, xmax = np.floor(xx.min()), np.ceil(xx.max())
-        ymin, ymax = np.floor(yy.min()), np.ceil(yy.max())
-        poly_bounds.append((xmin, xmax, ymin, ymax))
-
-    return list(set(poly_bounds))
+from .settings import PATH_PWT_RAW, PPP_CCODE_IF_MSNG, SSP_PROJ_ORG_SER
 
 
 def log_lin_interpolate(df, header="v_"):
@@ -80,7 +38,6 @@ def log_lin_interpolate(df, header="v_"):
     ## re-ordering the columns, just in case
     df_rtn = df_rtn[np.hstack([front_v, all_v])]
 
-    val_df, front_df = [], []
     for i in df_rtn.index:
         fp = df_rtn.loc[i, :][all_v]
         ## in case there is any nonpositive values or no missing values,
@@ -170,7 +127,6 @@ def yearly_growth(df, header="v_"):
             rtn_df[v] = 0
             continue
         v_prev = v_[(i - 1)]
-        p = np.log(df[v_prev])
         rtn_df[v] = np.log(df[v]) - np.log(df[v_prev])
 
     return rtn_df
@@ -330,7 +286,6 @@ def extrap_using_closest(
             and (int(x[-4:]) >= begin_end[0])
         ]
     )
-    v_head = [x for x in orig_df.columns if header not in x]
 
     ## good_ctries are only those that are absolutely filled
     ## excluding those that should be excluded
@@ -753,29 +708,23 @@ def smooth_fill(
     other_dim="storm",
 ):
     """Fill values from 2D dataarray `da1_in` with values from 2D dataarray
-    `da2_in`. For instance, when two datasets referring to country-year GDP values have
-    more filled values in `da2_in` than in `da1_in`,
+    `da2_in`.
 
-    When using it with storm datasets, if filling the beginning or end of a storm,
-    pin the `da2_in` value to the `da1_in` value at the first/last point of overlap and
-    then use the `da2_in` values only to estimate the "change" in values over time,
-    using a ratio of predicted value in the desired time to the reference time. This
-    can also be used when, for example, `da1_in` refers to RMW and `da2_in` refers to
-    ROCI. In this case, you want to define ``fill_all_null=False`` to avoid filling RMW
-    with ROCI when no RMW values are available but some ROCI values are available.
+    For instance, one may use this with storm datasets. If filling the beginning or end
+    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of 
+    overlap and then use the `da2_in` values only to estimate the "change" in values 
+    over time, using a ratio of predicted value in the desired time to the reference
+    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in` 
+    refers to ROCI. In this case, you want to define ``fill_all_null=False`` to avoid
+    filling RMW with ROCI when no RMW values are available but some ROCI values are 
+    available.
 
     Parameters
     ----------
-    da1_in, da2_in : xarray.DataArray
-        DataArrays indexed by other dimension (defined by `other_dim`) and time
-        dimension (defined by `time_dim`)
+    da1,da2 : :class:`xarray.DataArray`
+        DataArrays indexed by storm and time
     fill_all_null : bool, optional
-        If True, fills even when there are no known (or non-NA) values in `da1_in`
-    time_dim : str, optional
-        variable name to indicate the time dimension, default set to be "time"
-    other_dim : str, optional
-        variable name to indicate the other dimension, default set to be "storm" but
-        can also indicate country names, region names, and so forth
+        If True, f
 
     Returns
     -------
