@@ -1,8 +1,13 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6010452.svg)](https://doi.org/10.5281/zenodo.6010452)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6012027.svg)](https://doi.org/10.5281/zenodo.6012027)
+
 # Sea Level Impacts Input Dataset by Elevation, Region, and Scenario (SLIIDERS)
 
 This repository hosts the code used to create the [SLIIDERS-ECON](https://doi.org/10.5281/zenodo.6010452) and [SLIIDERS-SLR](https://doi.org/10.5281/zenodo.6012027) datasets. The SLIIDERS datasets contain current and forecasted physical and socioeconomic metrics from 2000-2100 - organized by coastal segment, elevation slice, and scenario - for use as inputs to global coastal climate impacts research.
 
 **SLIIDERS-ECON** contains socioeconomic variables, varying horizontally and vertically over space. **SLIIDERS-SLR** contains Monte Carlo projections of Local Sea Level Rise under different emissions and ice sheet dynamics assumptions, based on the outputs of [LocalizeSL](https://github.com/bobkopp/LocalizeSL). Coastal segments in SLIIDERS-ECON can be matched to gridded LSLR projections in SLIIDERS-SLR via the `SLR_site` key.
+
+All work utilizing this code or the resulting SLIIDERS datasets should cite Depsky et al. 2022 (in prep.). See [License](#license) for details.
 
 ## Installation
 Most users will want to just use the datasets directly, accessible at the DOIs linked above. If you wish to recreate and/or modify the datasets, which we encourage, you will need to run the Jupyter notebooks in this repository. A collection of helper functions, organized into a Python package, is necessary to run the notebooks and can be found within the `sliiders` directory. A simple pip install will install this package
@@ -11,7 +16,7 @@ Most users will want to just use the datasets directly, accessible at the DOIs l
 pip install -e sliiders
 ```
 
-In addition, you will need to have [Dask Gateway](gateway.dask.org) installed and configured to execute the parallel, Dask-backed workflows contained in this repo. Advanced users can use other Dask Cluster backends (including simply running [Dask Distributed](distributed.dask.org) locally), but doing so will require modifying the cluster setup portion of notebooks that employ dask.
+In addition, you will need to have [Dask Gateway](https://gateway.dask.org) installed and configured to execute the parallel, Dask-backed workflows contained in this repo. Advanced users can use other Dask Cluster backends (including simply running [Dask Distributed](https://distributed.dask.org) locally), but doing so will require modifying the cluster setup portion of notebooks that employ dask.
 
 A Conda environment file better specifying a full environment needed to execute all of the workflows in this repo is in development and will be posted when complete.
 
@@ -34,3 +39,19 @@ All filepaths and settings for the notebooks can be found within `settings.py`. 
 ## Generating SLIIDERS-ECON and SLIIDERS-SLR
 
 To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in subdirectories under `notebooks` to learn about how to execute the workflows.
+
+## Support
+Please file an issue for any problems you encounter
+
+## Contributing
+We encourage community contributions. At the moment, we have no contribution template. Please fork the project and file a Merge Request to propose your addition. Clearly define the contribution that the Merge Request is making and, when any issues have been resolved, we will merge the new code.
+
+## Authors
+The original authors of this code include:
+- Daniel Allen
+- Ian Bolliger
+- Junho Choi
+- Nicholas Depsky
+
+## License
+This code is licensed under the [MIT License](./LICENSE). However, we request that wherever this code or the SLIIDERS datasets are used, that the underlying manuscript (Depsky et al. 2022) is cited. A citation guide will be posted once the manuscript preprint is available.

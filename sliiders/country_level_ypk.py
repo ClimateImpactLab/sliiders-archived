@@ -719,7 +719,7 @@ def smooth_fill(
     overlap and then use the `da2_in` values only to estimate the "change" in values
     over time, using a ratio of predicted value in the desired time to the reference
     time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in`
-    refers to ROCI. In this case, you want to define ``fill_all_null=False`` to avoid
+    refers to ROCI. In this case, you want to define `fill_all_null=False` to avoid
     filling RMW with ROCI when no RMW values are available but some ROCI values are
     available.
 
@@ -1108,7 +1108,8 @@ def examine_against_fig6(pim_df, intensity="KY", fig_size=(18, 9)):
     -------
     sse : float
         SSE (w.r.t. Dellink et al. (2017) Figure 6) calculated
-    also,
+    also, presents the bar graphs (containing capital intensity values from data)
+        plotted in comparison to Dellink et al. (2017) Figure 6
 
     """
 
