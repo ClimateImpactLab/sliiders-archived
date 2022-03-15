@@ -1,2 +1,2 @@
-from . import country_level_ypk, gcs, geography, settings, spatial
+from . import country_level_ypk, gcs, settings, spatial
 from .settings import *
