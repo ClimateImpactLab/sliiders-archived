@@ -1,9 +1,13 @@
 # various functions used for the country-level information workflow
+from itertools import product as lstprod
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize as opt_min
 from tqdm.auto import tqdm
 
-from .settings import PATH_PWT_RAW, PPP_CCODE_IF_MSNG, SSP_PROJ_ORG_SER
+from .settings import PATH_PWT_RAW, PPP_CCODE_IF_MSNG, SCENARIOS, SSP_PROJ_ORG_SER
 
 
 def log_lin_interpolate(df, header="v_"):
@@ -711,12 +715,12 @@ def smooth_fill(
     `da2_in`.
 
     For instance, one may use this with storm datasets. If filling the beginning or end
-    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of 
-    overlap and then use the `da2_in` values only to estimate the "change" in values 
+    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of
+    overlap and then use the `da2_in` values only to estimate the "change" in values
     over time, using a ratio of predicted value in the desired time to the reference
-    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in` 
+    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in`
     refers to ROCI. In this case, you want to define ``fill_all_null=False`` to avoid
-    filling RMW with ROCI when no RMW values are available but some ROCI values are 
+    filling RMW with ROCI when no RMW values are available but some ROCI values are
     available.
 
     Parameters
@@ -832,3 +836,443 @@ def smooth_fill(
 
     # make sure we didn't add vals
     return out.where(either_non_null)
+
+
+def minimize_simple_production(x, K_values, Y_values):
+    """Helper function for getting at the `A` (TFP) and `alpha` (GDP elasticity of
+    capital). Returns the sum of squared errors with respect to actual GDP values.
+
+    Parameters
+    ----------
+    x : array-like of floats
+        divided into `A` (TFP) and `alpha` (GDP elasticity of capital)
+    K_values : array-like of floats
+        containing historical capital values (in the case of only-capital production
+        functional form) or historical per-capita capital values (in the case of Cobb-
+        Douglas functional form)
+    Y_values : array-like of floats
+        containing historical GDP values (in the case of only-capital production
+        functional form) or historical per-capita GDP values (in the case of Cobb-
+        Douglas functional form)
+
+    Returns
+    -------
+    sse : float
+        Sum of squared errors from netting the actual GDP values from estimated
+        GDP values assuming a functional form
+
+    """
+    A, alpha = x
+
+    diff = A * (K_values**alpha) - Y_values
+    sse = np.sum(diff**2)
+
+    return sse
+
+
+def MPK_init_calc(
+    ccode,
+    hist_df,
+    base2010_df,
+    alpha_overall,
+    hist_YKP=["rgdpna_19", "rnna_19", "pop"],
+    base_YKP=["gdp", "capital", "pop"],
+    init_A_alpha=[100, 1],
+):
+    """Function for calculating the value of MPK (marginal product of capital) of the
+    country specified by `ccode` and in the year specified by `year`.
+    Parameters
+    ----------
+    ccode : str
+        country code of the country we need to calculate the MPK for
+    hist_df : pandas.DataFrame
+        dataframe containing historical (1950-2020) information on GDP, capital stock,
+        and population; should contain the column names in `hist_YKP`. Note that its
+        values are in millions (of dollars for GDP and capital, of people
+        for population)
+    base2010_df : pandas.DataFrame
+        dataframe containing projected 2010 information on GDP and population and
+        baseline 2010 historical capital stock information; should contain the column
+        names in `base_YKP`
+    alpha_overall : array-like of floats
+        should contain elasticities of GDP w.r.t. capital values that have been pre-
+        calculated; two elements, the former being our own calculation of the elasticity
+        and the latter being the elasticity calculated in Crespo Cuaresma (2017)
+    hist_YKP : array-like of str
+        column names (of `hist_df`) in the following order: constant PPP GDP
+        variable, constant PPP capital stock variable, and population variable
+    base_YKP : array-like of str
+        column names (of `base2010_df`) in the following order: constant PPP GDP
+        variable, constant PPP capital stock variable, and population variable
+    init_A_alpha : array-like of floats
+        points of initialization for `A` (TFP) and `alpha` (elasticity of GDP w.r.t.
+        capital)
+
+    Returns
+    -------
+    MPK_overall_our, MPK_overall_iiasa, MPK_country_pc, MPK_country : tuple of floats
+        calculated MPKs using different versions of the GDP elasticity w.r.t. capital,
+        first - using our self-calculated elasticity,
+        second - using the Crespo Cuaresma (2017) elasticity,
+        third - using the country-specific elasticity assuming Cobb-Douglass function,
+        fourth - using the country-specific elasticity assuming capital-only function
+
+    """
+
+    # Y, K, pop values of the years that we want to examine
+    histccodes = hist_df.index.get_level_values("ccode").unique()
+    baseccodes = base2010_df.index.get_level_values("ccode").unique()
+    msg_error = "`ccode` must be in both `hist_df` and `base2010_df`."
+    assert (ccode in histccodes) and (ccode in baseccodes), msg_error
+
+    # multiplying 1,000,000 since they are in millions
+    YKP = hist_df.loc[ccode, hist_YKP].dropna()
+    Ys = YKP[hist_YKP[0]].values * 1000000
+    Ks = YKP[hist_YKP[1]].values * 1000000
+    Ps = YKP[hist_YKP[2]].values * 1000000
+
+    # creating the capital intensity values using projected base 2010 data
+    yk_df = base2010_df.loc[
+        base2010_df.index.get_level_values("ccode") == ccode, :
+    ].copy()
+    yk_df = yk_df.reset_index().set_index(["ccode", "ssp", "iam"])[base_YKP]
+    yk_df["yk"] = yk_df[base_YKP[0]] / yk_df[base_YKP[1]]
+
+    # if all zeros for any of the three variables, no reason to calculate MPK
+    if (Ys == 0).all() or (Ks == 0).all() or (Ps == 0).all():
+        yk_df["mpk_our"], yk_df["mpk_iiasa"] = 0, 0
+        yk_df["mpk_ctry_cd"], yk_df["mpk_ctry_co"] = 0, 0
+        return yk_df
+
+    # let us sort them in the order of Ks, just in case
+    KYPs = np.array(sorted(zip(Ks, Ys, Ps)))
+    Ks, Ys, Ps = KYPs[:, 0], KYPs[:, 1], KYPs[:, 2]
+
+    # optimizing values for A (total factor productivity) and alpha (GDP elasticity
+    # wrt. capital); capital-only
+    A_alpha_getter = lambda x: minimize_simple_production(x, Ks, Ys)
+    A, alpha = opt_min(
+        A_alpha_getter, init_A_alpha, bounds=((0, np.inf), (0, np.inf))
+    ).x
+
+    # optimizing values for A and alpha; Cobb-Douglas
+    A_alpha_getter = lambda x: minimize_simple_production(x, Ks / Ps, Ys / Ps)
+    A_pc, alpha_pc = opt_min(
+        A_alpha_getter, init_A_alpha, bounds=((0, np.inf), (0, np.inf))
+    ).x
+
+    # calculating MPK values based on the above A and alpha calculations
+    yk_df["mpk_our"] = alpha_overall[0] * yk_df["yk"]
+    yk_df["mpk_iiasa"] = alpha_overall[-1] * yk_df["yk"]
+    yk_df["mpk_ctry_cd"] = alpha_pc * yk_df["yk"]
+    yk_df["mpk_ctry_co"] = alpha * yk_df["yk"]
+
+    return yk_df
+
+
+def pim_single_ctry(
+    ccode_df,
+    MPK_init,
+    alpha_overall,
+    MPK_var="mpk_our",
+    scenarios=SCENARIOS,
+    yr_startend=[2010, 2100],
+    MPK_bar=0.1,
+    gamma_MPK=0.985,
+    gamma_I=0.98,
+    Yvar="gdp",
+    Kvar="capital",
+    iy_var="iy_ratio",
+    depre_overall_var="delta",
+    depre_ctry_var="delta_c",
+):
+    """Function for running the perpetual inventory method (PIM, as described in
+    Dellink et al., 2017), for a specific country, for each SSP-IAM scenario.
+
+    ----------
+    ccode_df : pandas.DataFrame
+        DataFrame containing country-specific information for conducting the by-country
+        PIM process to acquire capital stock projections. Needs to contain `Yvar`,
+        `Kvar`, with indices `ccode`, `year`, `ssp`, and `iam`.
+    MPK_init : pandas.DataFrame
+        DataFrame containing initial-year marginal product of capital. Also should
+        contain depreciation rates; so should contain `MPK_var`, `depre_overall_var`,
+        `iy_var`, and `depre_ctry_var` and with index `ccode`, `ssp`, and `iam`
+    alpha_overall : float
+        elasticity of GDP w.r.t. capital, global and not country-specific
+    MPK_var : str
+        column name for the initial-year marginal product of capital
+    scenarios : array-like of tuples of str
+        array-like of tuples containing SSP and IAM (in that order) scenarios
+    yr_startend : array-like of ints
+        starting year and end year of projection
+    MPK_bar : float
+        long-term elasticity of GDP w.r.t. capital, value 0.1 taken from Dellink et al.
+        (2017)
+    gamma_MPK : float
+        velocity of converging to long-term elasticity of GDP w.r.t. capital, value
+        0.985 taken from Dellink et al. (2017)
+    gamma_I : float
+        velocity of converging to long-term investment-to-GDP ratio, value 0.98 taken
+        from Dellink et al. (2017)
+    Yvar : str
+        column name of the constant PPP GDP variable
+    Kvar : str
+        column name of the (initial-year) constant PPP capital stock variable
+    iy_var : str
+        column name of the (initial-year) investment-to-GDP variable
+    depre_overall_var : str
+        depreciation rate variable (over all countries)
+    depre_ctry_var : str
+        country-specific depreciation rate variable
+
+    Returns
+    -------
+    ccode_df : pandas.DataFrame
+        DataFrame containing the updated values of capital stock projection estimates
+
+    """
+    newvar = "{}_estim".format(Kvar)
+    ccode = ccode_df.index.get_level_values("ccode").values[0]
+
+    ## delta is same across all scenarios
+    delta, delta_r = MPK_init.loc[
+        (ccode, "SSP1", "OECD"), [depre_overall_var, depre_ctry_var]
+    ].values
+
+    ccode_df["MPK"], ccode_df["IY"] = np.nan, np.nan
+    ccode_df[newvar], ccode_df["KY"] = np.nan, np.nan
+    for yr in range(yr_startend[0], yr_startend[-1] + 1):
+        for scen in scenarios:
+            ## advancing MPK values annually
+            ssp, iam = scen
+            if yr == yr_startend[0]:
+                MPK = MPK_init.loc[(ccode, ssp, iam), MPK_var]
+            else:
+                prev_MPK = ccode_df.loc[(ccode, yr - 1, ssp, iam), "MPK"]
+                MPK = gamma_MPK * prev_MPK + (1 - gamma_MPK) * MPK_bar
+            ccode_df.loc[(slice(None), yr, ssp, iam), "MPK"] = MPK
+            ky_LT = alpha_overall / MPK
+
+            ## year-to-year GDP growth rates
+            if yr != yr_startend[-1]:
+                g_Ys = ccode_df.loc[(ccode, [yr, yr + 1], ssp, iam), Yvar].values
+                Y_yr = g_Ys[0]
+            else:
+                g_Ys = ccode_df.loc[(ccode, [yr - 1, yr], ssp, iam), Yvar].values
+                Y_yr = g_Ys[1]
+            g_Y = g_Ys[-1] / g_Ys[0] - 1
+
+            ## long-run I-to-Y ratio
+            iy_LT = (g_Y + delta) * ky_LT
+
+            ## I-to-Y ratios time series
+            if yr == yr_startend[0]:
+                IY = MPK_init.loc[(ccode, ssp, iam), iy_var]
+            else:
+                prev_IY = ccode_df.loc[(ccode, yr - 1, ssp, iam), "IY"]
+                IY = (gamma_I * prev_IY) + (1 - gamma_I) * iy_LT
+            ccode_df.loc[(slice(None), yr, ssp, iam), "IY"] = IY
+
+            ## Perpetual inventory method capital stock time series
+            if yr == yr_startend[0]:
+                K_yr = MPK_init.loc[(ccode, ssp, iam), Kvar]
+            else:
+                prev_K = ccode_df.loc[(ccode, yr - 1, ssp, iam), newvar]
+                K_yr = (1 - delta_r) * prev_K + IY * Y_yr
+            ccode_df.loc[(slice(None), yr, ssp, iam), newvar] = K_yr
+            ccode_df.loc[(slice(None), yr, ssp, iam), "KY"] = K_yr / Y_yr
+
+    return ccode_df
+
+
+def examine_against_fig6(pim_df, intensity="KY", fig_size=(18, 9)):
+    """
+    Function to examine the estimated capital intensity (the variable `intensity` in the
+    DataFrame `pim_df`) against the Dellink et al. (2017) output of the same variable
+    for four countries Tanzania, India, China, and the United States (shown in Fig. 6 of
+    the paper). Also calculates the SSE across own estimates and Dellink et al. (2017)'s
+    numbers.
+
+    Parameters
+    ----------
+    pim_df : pandas DataFrame
+        containing the `intensity` variable; should have indices `ccode`, `year`,
+        `ssp`, and `iam` (in that order)
+    intensity : str
+        capital intensity variable in `pim_df`
+    fig_size : tuple of floats or ints
+        to set the output figure size
+
+    Returns
+    -------
+    sse : float
+        SSE (w.r.t. Dellink et al. (2017) Figure 6) calculated
+    also,
+
+    """
+
+    FOUR_CTRIES = ["TZA", "IND", "CHN", "USA"]
+    SSP = ["SSP{}".format(x) for x in range(5, 0, -1)]
+    FIG_YRS = [2100, 2050, 2020]
+
+    ## preparing the figures
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 9))
+    which = np.arange(0.1, 15 * 0.5 + 0.1, 0.5)
+    which = which + np.array(range(0, len(which))) * 0.1
+
+    ## from Dellink et al. (2017); had to measure the figure with a ruler
+    ky_cm = 3 / 6.525
+    dellink_case = pd.DataFrame(
+        list(lstprod(*[FOUR_CTRIES, FIG_YRS, SSP])), columns=["ccode", "year", "ssp"]
+    )
+    dellink_case[intensity] = np.nan
+    dellink_case["year"] = dellink_case["year"].astype("int64")
+    dellink_case.set_index(["ccode", "year", "ssp"], inplace=True)
+
+    ## Values from Figure 6, in the order of SSP5 -> SSP1 and 2100, 2050, 2020
+    TZN = [
+        np.array([6.2, 4.45, 4.4]) * ky_cm,
+        np.array([6.95, 6.1, 4.475]) * ky_cm,
+        np.array([6.25, 5.675, 4.5]) * ky_cm,
+        np.array([5.95, 5.175, 4.45]) * ky_cm,
+        np.array([6.25, 4.65, 4.45]) * ky_cm,
+    ]
+    IND = [
+        np.array([7.4, 5.7, 5.75]) * ky_cm,
+        np.array([7.575, 6.7, 5.8]) * ky_cm,
+        np.array([7.65, 7.45, 5.85]) * ky_cm,
+        np.array([7.3, 6.525, 5.775]) * ky_cm,
+        np.array([7.6, 5.95, 5.75]) * ky_cm,
+    ]
+    CHN = [
+        np.array([9.9, 8.45, 6.35]) * ky_cm,
+        np.array([10.25, 9.55, 6.475]) * ky_cm,
+        np.array([9.8, 10.55, 6.525]) * ky_cm,
+        np.array([9.6, 9.55, 6.45]) * ky_cm,
+        np.array([10.45, 8.8, 6.4]) * ky_cm,
+    ]
+    USA = [
+        np.array([6.25, 5.4, 5.05]) * ky_cm,
+        np.array([6.75, 5.9, 5.1]) * ky_cm,
+        np.array([7.275, 6.325, 5.15]) * ky_cm,
+        np.array([6.9, 6.05, 5.1]) * ky_cm,
+        np.array([6.65, 5.8, 5.1]) * ky_cm,
+    ]
+    for i, ct in enumerate([TZN, IND, CHN, USA]):
+        ctry = FOUR_CTRIES[i]
+        for j, row in enumerate(ct):
+            ssp = SSP[j]
+            dellink_case.loc[(ctry, FIG_YRS, ssp), intensity] = row
+
+    labs = []
+    for j, ssp in enumerate(SSP):
+        labs += ["2100", "{}   2050".format(ssp), "2020"]
+
+    ax1.set_yticks(which + 0.15)
+    ax1.set_yticklabels(labs)
+    dellink_vals = []
+    for l, ctry in enumerate(FOUR_CTRIES):
+        ctry_vals = []
+        for ssp in SSP:
+            ctry_vals += list(dellink_case.loc[(ctry, FIG_YRS, ssp), intensity].values)
+        ax1.barh(which + l * 0.1, ctry_vals, height=0.1, label=ctry)
+        dellink_vals += ctry_vals
+    ax1.legend()
+    ax1.set_title("Capital intensities for selected countries, Dellink et al. (2017)")
+
+    ax2.set_yticks(which + 0.15)
+    ax2.set_yticklabels(labs)
+    our_vals = []
+    for l, ctry in enumerate(FOUR_CTRIES):
+        ctry_vals = []
+        for ssp in SSP:
+            ctry_vals += list(
+                pim_df.loc[(ctry, FIG_YRS, ssp, "OECD"), intensity].values
+            )
+        ax2.barh(which + l * 0.1, ctry_vals, height=0.1, label=ctry)
+        our_vals += ctry_vals
+    mx = max(our_vals + dellink_vals)
+    ax_set = np.linspace(0, np.ceil(mx), 5)
+    sse = ((np.array(our_vals) - np.array(dellink_vals)) ** 2).sum()
+    sser = round(sse, 3)
+
+    ax1.set_xticks(ax_set)
+    ax2.set_xticks(ax_set)
+
+    ax2.legend()
+    ax2.set_title("Capital intensities, our own replication using the OECD method")
+
+    fig.suptitle("Comparison of capital intensities; SSE={}".format(sser), fontsize=12)
+    fig.show()
+
+    return sse
+
+
+def top_bottom_10(df, yr=2100, ssp="SSP3", capvar="capital_estim"):
+    """Shows the top ten and bottom ten according to `capvar` in the DataFrame `df`
+    in the year `yr` and the SSP `ssp`; figures for IIASA and OECD IAMs are drawn
+    separately.
+
+    Parameters
+    ----------
+    df : pandas DataFrame
+        containing `capvar` variable, with indices `ccode`, `year`,
+        `ssp`, and `iam` (in that order)
+    yr : int
+        year in which we would like to compare the `capvar` values across countries
+    ssp : str
+        SSP scenario that we would like to examine
+    capvar : str
+        the name of the variable to produce top 10 and bottom 10 countries from
+
+    Returns
+    -------
+    None, but presents the top 10 and bottom 10 countries by IAMs in bar graphs
+
+    """
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 14))
+
+    iiasa_df = df.loc[(slice(None), yr, ssp, "IIASA"), [capvar]].copy()
+    iiasa_df.sort_values([capvar], inplace=True)
+    iiasa_sma = iiasa_df.index.get_level_values("ccode")[0:10]
+    iiasa_sma_vals = np.log(iiasa_df[capvar].values[0:10])
+
+    small = list(range(1, 11))
+    ax1.barh(small, iiasa_sma_vals, label="Bottom 10", color="orange", height=0.8)
+    ax1.set_yticks(small)
+    ax1.set_yticklabels(iiasa_sma)
+
+    iiasa_big = iiasa_df.index.get_level_values("ccode")[-10:]
+    iiasa_big_vals = np.log(iiasa_df[capvar].values[-10:])
+
+    big = list(range(11, 21))
+    ax1.barh(big, iiasa_big_vals, label="Top 10", color="#87CEEB", height=0.8)
+    ax1.set_yticks(small + big)
+    ax1.set_yticklabels(np.hstack([iiasa_sma, iiasa_big]))
+    fig.suptitle("Log of capital stock in the year {} and {} scenario".format(yr, ssp))
+    ax1.set_title("Case for IIASA")
+    ax1.set_xlabel("Log of millions of dollars")
+
+    oecd_df = df.loc[(slice(None), yr, ssp, "OECD"), [capvar]].copy()
+    oecd_df.sort_values([capvar], inplace=True)
+    oecd_sma = oecd_df.index.get_level_values("ccode")[0:10]
+    oecd_sma_vals = np.log(oecd_df[capvar].values[0:10])
+
+    ax2.barh(small, oecd_sma_vals, label="Bottom 10", color="orange", height=0.8)
+    ax2.set_yticks(small)
+    ax2.set_yticklabels(oecd_sma)
+
+    oecd_big = oecd_df.index.get_level_values("ccode")[-10:]
+    oecd_big_vals = np.log(oecd_df[capvar].values[-10:])
+
+    ax2.barh(big, oecd_big_vals, label="Top 10", color="#87CEEB", height=0.8)
+    ax2.set_yticks(small + big)
+    ax2.set_yticklabels(np.hstack([oecd_sma, oecd_big]))
+    ax2.set_title("Case for OECD")
+    ax2.set_xlabel("Log of millions of dollars")
+
+    fig.show()
+
+    return None
