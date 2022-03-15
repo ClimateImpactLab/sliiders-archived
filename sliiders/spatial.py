@@ -12,6 +12,7 @@ import pandas as pd
 import pygeos
 import shapely as shp
 import xarray as xr
+import regionmask
 from numba import jit
 from scipy.spatial import SphericalVoronoi, cKDTree
 from shapely.geometry import (
@@ -2595,3 +2596,274 @@ def generate_voronoi_from_segments(
     assert ciam_polys.is_valid.all()
     
     return all_overlays, ciam_polys
+
+def get_degree_box(row):
+    """
+    Get a 1-degree box containing a centroid
+    defined by row["lon"] and row["lat"]
+    """
+    return box(
+        row["lon"] - 0.5,
+        row["lat"] - 0.5,
+        row["lon"] + 0.5,
+        row["lat"] + 0.5,
+    )
+
+
+def get_tile_names(df, lon_col, lat_col):
+    """
+    Get tile names in the format used by CoastalDEM.
+    Defined by the southeastern point's 2-digit degree-distance
+    north (N) or south (S) of the equator, and then its 3-digit
+    distance east (E) or west (W) of the prime meridian.
+    """
+    tlon = np.floor(df[lon_col]).astype(int)
+    tlat = np.floor(df[lat_col]).astype(int)
+
+    NS = np.where(tlat >= 0, "N", "S")
+    EW = np.where(tlon >= 0, "E", "W")
+
+    return (
+        NS
+        + np.abs(tlat).astype(int).astype(str).str.zfill(2)
+        + EW
+        + np.abs(tlon).astype(int).astype(str).str.zfill(3)
+    )
+
+
+def get_all_exp_tiles(exp_path, filter_field=None):
+    """
+    Get the list of tiles included in an exposure dataset.
+    
+    Parameters
+    ----------
+    exp_path : pathlib.Path
+        Path to exposure Parquet. Must be indexed by `x_ix` and `y_ix`
+        
+    filter_field : str
+        Field to filter on. Filter is set to filter out values that are not
+        greater than 0.
+    
+    Returns
+    -------
+    np.ndarray
+        1D array of unique 1-degree tile names
+    
+    """
+
+    pq_filter = None
+    if filter_field is not None:
+        pq_filter = [[(filter_field, ">", 0)]]
+
+    exp = pd.read_parquet(exp_path, columns=["x_ix", "y_ix"], filters=pq_filter)
+
+    out = grid_ix_to_val(
+        np.stack((exp["x_ix"], exp["y_ix"])).T, cell_size=sset.LITPOP_GRID_WIDTH
+    )
+
+    exp = exp.drop(columns=["x_ix", "y_ix"])
+    exp["lon"] = np.floor(out[:, 0]).astype(int)
+    exp["lat"] = np.floor(out[:, 1]).astype(int)
+
+    lonlats = exp.drop_duplicates(["lon", "lat"]).reset_index(drop=True)
+
+    lonlats["londir"] = np.where(lonlats["lon"] < 0, "W", "E")
+    lonlats["latdir"] = np.where(lonlats["lat"] < 0, "S", "N")
+
+    lonlats["lonnum"] = np.abs(lonlats["lon"]).astype(int).astype(str).str.zfill(3)
+    lonlats["latnum"] = np.abs(lonlats["lat"]).astype(int).astype(str).str.zfill(2)
+
+    lonlats["tile_name"] = (
+        lonlats["latdir"] + lonlats["latnum"] + lonlats["londir"] + lonlats["lonnum"]
+    )
+
+    return lonlats["tile_name"].values
+
+def get_bbox(tile_name):
+    """
+    Return bounding box from tile name in the string format "VXXHYYY" representing the southwestern corner of a 1-degree tile,
+    where "V" is "N" (north) or "S" (south), "H" is "E" (east) or "W" (west), "XX" is a two-digit zero-padded number indicating
+    the number of degrees north or south from 0,0, and "YYY" is a three-digit zero-padded number indicating the number of degrees
+    east or west from 0,0.
+    
+    Parameters
+    ----------
+    tile_name : str
+        Tile name in the format described above
+        
+    Returns
+    -------
+    shapely.Polygon
+        A box representing the spatial coverage of the tile
+    """
+    lat_term, lon_term = tile_name[:3], tile_name[3:]
+
+    lat_direction, lat_value = lat_term[0], int(lat_term[1:])
+    lon_direction, lon_value = lon_term[0], int(lon_term[1:])
+
+    lat_sign = 1 if lat_direction == "N" else -1
+    lon_sign = 1 if lon_direction == "E" else -1
+
+    llat = lat_sign * lat_value
+    llon = lon_sign * lon_value
+
+    ulat = llat + 1
+    ulon = llon + 1
+
+    return box(llon, llat, ulon, ulat)
+
+def get_partial_covering_matches(elev_tile, bbox, gdf, id_name=None):
+    """
+    Get shapes in `gdf` that overlap with `bbox`, as flattened array corresponding
+    to the indices of `elev_tile`
+
+    If `id_name` is None, returns flag indicating there is some match
+    Else, returns ID of the match, or -1 if there's no match
+    """
+    gdf = gdf[gdf["geometry"].intersects(bbox)].copy()
+
+    gdf["geometry"] = gdf["geometry"].intersection(bbox)
+    gdf = gdf[gdf["geometry"].area > 0].copy()
+
+    if len(gdf) == 0:
+        res = np.zeros(elev_tile.size, dtype=int)
+        if id_name is None:
+            return res
+        return res - 1
+
+    gdf = gdf.reset_index(drop=True)
+
+    regions = regionmask.from_geopandas(gdf, names=id_name, name="regions")
+
+    mask = regions.mask(elev_tile.x.values, elev_tile.y.values)
+
+    if id_name is None:
+        mask = ~np.isnan(mask)
+
+    mask_df = mask.astype(bool if id_name is None else int)
+
+    mask_df = mask_df.to_pandas().stack().reset_index().rename(columns={0: "region_id"})
+
+    if id_name is None:
+        return mask_df["region_id"].to_numpy()
+
+    mask_df.loc[mask_df["region_id"] < 0, "region_id"] = len(regions.names)
+
+    region_matches = np.take(
+        np.array(regions.names + [-1]), np.array(mask_df["region_id"])
+    )
+
+    return region_matches
+
+def get_vor_matches(
+    elev_tile, bbox, regions_df, id_name, out_name, ISO=None, assert_filled=True
+):
+    regions = regionmask.from_geopandas(regions_df, names=id_name, name=out_name)
+
+    mask = regions.mask(elev_tile.x.values, elev_tile.y.values, wrap_lon=False)
+
+    # if there are pixels without shapes, buffer shapes
+    assert mask.isnull().sum().item() == 0
+    mask_df = (
+        mask.astype(int)
+        .to_pandas()
+        .stack()
+        .reset_index()
+        .rename(columns={0: "region_ix"})
+    )
+
+    if assert_filled:
+        assert (mask_df["region_ix"] < 0).sum() == 0
+    else:
+        mask_df.loc[mask_df["region_ix"] < 0, "region_ix"] = len(regions.names)
+
+    mask_df[out_name] = np.take(
+        np.array(regions.names + [""]), np.array(mask_df["region_ix"])
+    )
+
+    return mask_df[out_name]
+
+def get_empty_exp_grid(elev_tile, this_exp, litpop_grid_width):
+    mg = np.meshgrid(elev_tile.x.values, elev_tile.y.values)
+
+    df = pd.DataFrame({"lat": mg[1].flatten(), "lon": mg[0].flatten()})
+
+    df["x_ix"] = grid_val_to_ix(df["lon"], litpop_grid_width)
+    df["y_ix"] = grid_val_to_ix(df["lat"], litpop_grid_width)
+
+    out_types = {
+        "lat": np.float32,
+        "lon": np.float32,
+        "x_ix": np.int16,
+        "y_ix": np.int16,
+    }
+
+    df = df.astype({k: v for k, v in out_types.items() if k in df.columns})
+
+    return df
+
+def get_cell_size_km(da, bbox):
+    # grid cell area is determined by latitude
+    tile_size_km = np.cos(np.deg2rad(bbox.centroid.y)) * (spatial.LAT_TO_M / 1000) ** 2
+    cell_size_km = tile_size_km / da.size
+
+    return cell_size_km
+
+def get_closest_valid_exp_tiles(
+    missing_exp_tiles, valid_exp_tiles, max_batch_comparisons=int(2e7)
+):
+
+    if len(valid_exp_tiles) == 0:
+        return None
+
+    src_locs = missing_exp_tiles[["lon", "lat"]].to_numpy()
+    dst_locs = valid_exp_tiles[["lon", "lat"]].to_numpy()
+
+    total_comparisons = len(src_locs) * len(dst_locs)
+
+    closest_ix = np.zeros(len(src_locs), dtype=int) - 1
+
+    num_batches = int(total_comparisons / max_batch_comparisons) + 1
+    batch_size_src = int(len(src_locs) / num_batches)
+
+    for batch in range(num_batches):
+        batch_start = batch * batch_size_src
+        batch_end = min((batch + 1) * batch_size_src, len(src_locs))
+        closest_ix_batch = dist_matrix(
+            src_locs[batch_start:batch_end, 0],
+            src_locs[batch_start:batch_end, 1],
+            dst_locs[:, 0],
+            dst_locs[:, 1],
+        ).argmin(axis=1)
+
+        closest_ix[batch_start:batch_end] = closest_ix_batch
+
+    missing_exp_tiles["closest_ix"] = closest_ix
+
+    missing_exp_tiles["valid_x_ix"] = np.take(
+        valid_exp_tiles["x_ix"].to_numpy(),
+        missing_exp_tiles["closest_ix"].to_numpy(),
+    )
+    missing_exp_tiles["valid_y_ix"] = np.take(
+        valid_exp_tiles["y_ix"].to_numpy(),
+        missing_exp_tiles["closest_ix"].to_numpy(),
+    )
+
+    return missing_exp_tiles[["x_ix", "y_ix", "valid_x_ix", "valid_y_ix"]]
+
+def get_granular_grid(bbox, grid_width=3601, cap=1):
+    size = 1 / grid_width
+
+    llon, llat, ulon, ulat = bbox.bounds
+
+    lons_small = np.arange(llon + (size / 2), ulon, size)
+    lats_small = np.flip(np.arange(llat + (size / 2), ulat, size))
+
+    xx, yy = [i.flatten() for i in np.meshgrid(lons_small, lats_small)]
+
+    granular_grid = pd.DataFrame(
+        {"y": yy, "x": xx, "v": cap * np.ones(grid_width**2)}
+    ).set_index(["y", "x"])
+    granular_grid = granular_grid.to_xarray().v
+
+    return granular_grid
