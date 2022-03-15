@@ -1308,6 +1308,22 @@ def ensure_validity(poly_points_lon_lat):
 
 @jit(nopython=True)
 def numba_divide_polys_by_meridians(poly_points_lon_lat):
+    """Transform polygons defined by vertices that wrap around the globe,
+    into those same polygons represented as 2D shapes.
+
+    Parameters
+    ----------
+    poly_points_lon_lat : np.ndarray
+        2D array of longitude-latitude coordinates
+
+    Returns
+    -------
+    list of np.ndarray
+        List of 2D array of longitude-latitude coordinates, representing all
+        2D polygons formed by `poly_points_lon_lat` when represented in
+        projected space that does not wrap around the globe
+    """
+
     diff = poly_points_lon_lat[1:] - poly_points_lon_lat[:-1]
     turnpoints = np.flip(np.where(np.abs(diff[:, 0]) > 180)[0])
     if turnpoints.shape[0] == 0:
@@ -2747,11 +2763,26 @@ def get_degree_box(row):
 
 
 def get_tile_names(df, lon_col, lat_col):
-    """
-    Get tile names in the format used by CoastalDEM.
+    """Get tile names in the format used by CoastalDEM.
     Defined by the southeastern point's 2-digit degree-distance
     north (N) or south (S) of the equator, and then its 3-digit
     distance east (E) or west (W) of the prime meridian.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame with latitude and longitude
+
+    lon_col : str
+        Name of field representing longitude in `df`
+
+    lat_col : str
+        Name of field representing latitude in `df`
+
+    Returns
+    -------
+    np.ndarray
+        Array of strings. Tile names defined by latitude and longitude.
     """
     tlon = np.floor(df[lon_col]).astype(int)
     tlat = np.floor(df[lat_col]).astype(int)
