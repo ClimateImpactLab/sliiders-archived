@@ -1115,6 +1115,8 @@ def fix_ring_topology(reg_group_polys, reg_group_loc_ids):
 
     contains, contained = tree.query_bulk(group_polys, "contains_properly")
 
+    # Check that there are no rings inside rings. If there are, this function
+    # And `get_groups_of_regions()` may need to be re-worked
     assert set(contains) & set(contained) == set([])
 
     for container_ix in np.unique(contains):
@@ -1436,6 +1438,43 @@ def numba_process_points(vertices):
 def get_groups_of_regions(
     loc_reg_lists, loc, sv, includes_southpole, includes_northpole, combine_by_id=True
 ):
+    """Get Voronoi output shapes for generator points that are part of
+    the same original Polygon.
+
+    Parameters
+    ----------
+    loc_reg_lists : dict from object to list of int
+        Mapping from the `UID` of the Voronoi-generating Polygon, to the list
+        of all indices in `pts_df` with that `UID`.
+
+    loc : object
+        Some key in `loc_reg_lists`
+
+    sv : scipy.spatial.SphericalVoronoi
+        SphericalVoronoi object based on input points
+
+    includes_southpole : bool
+        Whether any of the Voronoi regions in `sv.regions` covers the south
+        pole.
+
+    includes_northpole : bool
+        Whether any of the Voronoi regions in `sv.regions` covers the north
+        pole.
+
+    combine_by_id : bool
+        Whether to combine all Voronoi regions with the same `UID`, or to keep
+        them separate.
+
+    Returns
+    -------
+    reg_group : list of int, or list of list of int
+        List of indices in `sv.vertices` composing the nodes of the Voronoi
+        polygon corresponding to `UID` == `loc`. If there are multiple polygons
+        formed from the combination of Voronoi shapes (e.g. if two islands of
+        a region are separated by an island with another `UID`), returns a list
+        of these lists of indices.
+
+    """
 
     reg_group = get_reg_group(loc_reg_lists, loc, sv.regions)
     if not combine_by_id:
@@ -1444,7 +1483,8 @@ def get_groups_of_regions(
     if (not includes_southpole) and (not includes_northpole):
         # Optimization to combine points from the same region into one large shape
         # WARNING: Robust to interior rings, with `fix_ring_topology`, but not to
-        # rings within those rings
+        # rings within those rings. This is ok as long as the related assertion
+        # in `fix_ring_topology()` passes.
         candidate = combine_reg_group(reg_group)
         if len(candidate) == 1:
             reg_group = candidate
@@ -1462,6 +1502,51 @@ def get_polys_from_cycles(
     ix_min,
     ix_max,
 ):
+    """Transform Voronoi regions defined by `sv` on a sphere into the polygons
+    they define in longitude-latitude space.
+
+    Parameters
+    ----------
+    loc_reg_lists : dict from object to list of int
+        Mapping from the `UID` of the Voronoi-generating Polygon, to the list
+        of all indices in `pts_df` with that `UID`.
+
+    reg_cycles : list of int, or list of list of int
+        List of indices in `sv.vertices` composing the nodes of the Voronoi
+        region corresponding to some `UID`. If there are multiple polygons
+        formed from the combination of Voronoi shapes (e.g. if two islands of
+        a region are separated by an island with another `UID`), this is a list
+        of these lists of indices.
+
+    sv : scipy.spatial.SphericalVoronoi
+        SphericalVoronoi object based on input points
+
+    loc : object
+        Some key in `loc_reg_lists`
+
+    includes_southpole : bool
+        Whether any of the Voronoi regions in `sv.regions` covers the south
+        pole.
+
+    includes_northpole : bool
+        Whether any of the Voronoi regions in `sv.regions` covers the north
+        pole.
+
+    ix_min : list of int
+        Indices of most southerly origin points
+
+    ix_max : list of int
+        Indices of most northerly origin points
+
+    Returns
+    -------
+    reg_group_polys : list of shapely.Polygon
+        Polygons representing Voronoi outputs in longitude-latitude space
+
+    reg_group_loc_ids : list of int
+        `UID`s of `reg_group_polys`
+
+    """
     reg_group_polys = []
     reg_group_loc_ids = []
     for i, reg in enumerate(reg_cycles):
@@ -1727,11 +1812,38 @@ def remove_duplicate_points(pts_df):
 
 
 def remove_already_attributed_land_from_vor(
-    existing, vor_shapes, vor_ix, gridded_uid, vor_uid, all_gridded, show_bar=True
+    vor_shapes, all_gridded, vor_ix, existing, vor_uid, gridded_uid, show_bar=True
 ):
     """Mask Voronoi regions with the pre-existing regions, so that the result
     includes only the parts of the Voronoi regions that are not already
     assigned to the pre-existing regions.
+
+    Parameters
+    ----------
+    vor_shapes : array of pygeos.Geometry
+        Shapes of globally comprehensive Voronoi regions
+
+    all_gridded : array of pygeos.Geometry
+        Shapes of original regions
+
+    vor_ix : np.ndarray
+        1D array of indices of `vor_shapes` intersecting with `all_gridded`
+
+    existing : np.ndarray
+        1D array of indices of Polygons in `all_gridded` intersecting with
+        `vor_shapes`
+
+    vor_uid : np.ndarray
+        1D array of unique IDs corresponding with `vor_ix`
+
+    gridded_uid : np.ndarray
+        1D array of unique IDs corresponding with `existing`
+
+    Returns
+    -------
+    geopandas.GeoSeries
+        A GeoSeries based on `vor_shapes` that excludes the areas defined in
+        `all_gridded`.
     """
 
     calculated = []
@@ -1795,7 +1907,7 @@ def get_voronoi_regions(full_regions):
     vor_uid = np.take(vor_gdf["UID"].to_numpy(), vor_ix)
 
     vor_gdf["calculated"] = remove_already_attributed_land_from_vor(
-        existing, vor_shapes, vor_ix, gridded_uid, vor_uid, all_gridded
+        vor_shapes, all_gridded, vor_ix, existing, vor_uid, gridded_uid
     )
 
     vor_gdf["calculated"].plot()
@@ -2614,6 +2726,17 @@ def get_degree_box(row):
     """
     Get a 1-degree box containing a centroid
     defined by row["lon"] and row["lat"]
+
+    Parameters
+    ----------
+    row : dict
+        A dictionary including values for "lon" and "lat" indicating the center
+        of the 1-degree box
+
+    Returns
+    -------
+    shapely.Polygon
+        A Shapely box representing the spatial extent of the 1-degree tile
     """
     return box(
         row["lon"] - 0.5,
@@ -2695,10 +2818,12 @@ def get_all_exp_tiles(exp_path, filter_field=None):
 
 def get_bbox(tile_name):
     """
-    Return bounding box from tile name in the string format "VXXHYYY" representing the southwestern corner of a 1-degree tile,
-    where "V" is "N" (north) or "S" (south), "H" is "E" (east) or "W" (west), "XX" is a two-digit zero-padded number indicating
-    the number of degrees north or south from 0,0, and "YYY" is a three-digit zero-padded number indicating the number of degrees
-    east or west from 0,0.
+    Return bounding box from tile name in the string format "VXXHYYY"
+    representing the southwestern corner of a 1-degree tile, where "V" is "N"
+    (north) or "S" (south), "H" is "E" (east) or "W" (west), "XX" is a
+    two-digit zero-padded number indicating the number of degrees north or
+    south from 0,0, and "YYY" is a three-digit zero-padded number indicating
+    the number of degrees east or west from 0,0.
 
     Parameters
     ----------
@@ -2732,8 +2857,27 @@ def get_partial_covering_matches(elev_tile, bbox, gdf, id_name=None):
     Get shapes in `gdf` that overlap with `bbox`, as flattened array corresponding
     to the indices of `elev_tile`
 
-    If `id_name` is None, returns flag indicating there is some match
-    Else, returns ID of the match, or -1 if there's no match
+    Parameters
+    ----------
+    elev_tile : xarray.DataArray
+        Elevation raster tile
+
+    bbox : shapely.Polygon
+        Bounding box of `elev_tile`
+
+    gdf : geopandas.GeoDataFrame
+        GeoDataFrame containing geometries to match to `elev_tile` coordinates
+
+    id_name : str
+        Field of `gdf` to use as IDs in returned `region_matches`
+
+    Returns
+    -------
+    region_matches : np.ndarray
+        1D array of matches between `elev_tile` and `gdf`. Represented as a
+        flattened array along coordinates of `elev_tile`. If `id_name` is None,
+        returns flag indicating there is some match. If `id_name` is defined,
+        returns ID of the match, or -1 if there's no match.
     """
     gdf = gdf[gdf["geometry"].intersects(bbox)].copy()
 
@@ -2771,9 +2915,37 @@ def get_partial_covering_matches(elev_tile, bbox, gdf, id_name=None):
     return region_matches
 
 
-def get_vor_matches(
-    elev_tile, bbox, regions_df, id_name, out_name, ISO=None, assert_filled=True
-):
+def get_vor_matches(elev_tile, bbox, regions_df, id_name, out_name, assert_filled=True):
+    """For each pixel of `elev_tile`, assign the corresponding shape in
+    `regions_df`.
+
+    Parameters
+    ----------
+    elev_tile : xarray.DataArray
+        Elevation raster tile
+
+    bbox : shapely.Polygon
+        Bounding box of `elev_tile`
+
+    regions_df : geopandas.GeoDataFrame
+        GeoDataFrame containing geometries to match to `elev_tile` coordinates
+
+    id_name : str
+        Field of `regions_df` to use as IDs in returned array
+
+    out_name : str
+        Name to use for `id_name` field in output
+
+    assert_filled : bool
+        Whether to assert that regions are defined over the entire `elev_tile`
+
+    Returns
+    -------
+    pandas.Series
+        Array of matches between `elev_tile` and `regions_df`, defined by the field
+        `id_name` in `regions_df`.
+
+    """
     regions = regionmask.from_geopandas(regions_df, names=id_name, name=out_name)
 
     mask = regions.mask(elev_tile.x.values, elev_tile.y.values, wrap_lon=False)
@@ -2800,13 +2972,31 @@ def get_vor_matches(
     return mask_df[out_name]
 
 
-def get_empty_exp_grid(elev_tile, this_exp, litpop_grid_width):
+def get_empty_exp_grid(elev_tile, grid_width):
+    """Initialize DataFrame template representing an exposure tile covering
+    the same space as `elev_tile`.
+
+    Parameters
+    ----------
+    elev_tile : xarray.DataArray
+        Elevation raster tile
+
+    grid_width : float
+        Width of grid cells indexing exposure, in degrees
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        DataFrame with fields `lat`, `lon`, `x_ix`, and `y_ix`, providing
+        template to fill in exposure fields like asset value and population
+    """
+
     mg = np.meshgrid(elev_tile.x.values, elev_tile.y.values)
 
     df = pd.DataFrame({"lat": mg[1].flatten(), "lon": mg[0].flatten()})
 
-    df["x_ix"] = grid_val_to_ix(df["lon"], litpop_grid_width)
-    df["y_ix"] = grid_val_to_ix(df["lat"], litpop_grid_width)
+    df["x_ix"] = grid_val_to_ix(df["lon"], grid_width)
+    df["y_ix"] = grid_val_to_ix(df["lat"], grid_width)
 
     out_types = {
         "lat": np.float32,
@@ -2820,10 +3010,30 @@ def get_empty_exp_grid(elev_tile, this_exp, litpop_grid_width):
     return df
 
 
-def get_cell_size_km(da, bbox):
+def get_cell_size_km(elev_tile, bbox):
+    """Get approximate size of a grid cell in `elev_tile`. Assumes the median
+    latitude extends over the entire cell, so that all grid cells are equal in
+    size. Could be improved by evaluating size at each pixel's latitude in
+    `elev_tile`.
+
+    Parameters
+    ----------
+    elev_tile : xarray.DataArray
+        Elevation raster tile
+
+    bbox : shapely.Polygon
+        Bounding box of `elev_tile`
+
+    Returns
+    -------
+    cell_size_km : float
+        Approximate size in km2 of each pixel in `elev_tile`
+
+    """
+
     # grid cell area is determined by latitude
-    tile_size_km = np.cos(np.deg2rad(bbox.centroid.y)) * (spatial.LAT_TO_M / 1000) ** 2
-    cell_size_km = tile_size_km / da.size
+    tile_size_km = np.cos(np.deg2rad(bbox.centroid.y)) * (LAT_TO_M / 1000) ** 2
+    cell_size_km = tile_size_km / elev_tile.size
 
     return cell_size_km
 
@@ -2831,6 +3041,31 @@ def get_cell_size_km(da, bbox):
 def get_closest_valid_exp_tiles(
     missing_exp_tiles, valid_exp_tiles, max_batch_comparisons=int(2e7)
 ):
+    """Get the closest valid exposure tiles to the invalid tiles with exposure
+    values that need to be re-assigned.
+
+    Parameters
+    ----------
+    missing_exp_tiles : pandas.DataFrame
+        Tiles with attributed exposure (asset value or population) that do not
+        overlap any land areas in the Digital Elevation Model.
+
+    valid_exp_tiles : pandas.DataFrame
+        Tiles that overlap land areas in the Digital Elevation Model. (i.e.,
+        candidates for re-assignment of the missing exposure)
+
+    max_batch_comparisons : int
+        Maximum number of simultaneous comparisons to make using
+        `dist_matrix()`. High number of comparisons can reduce computation time
+        but increase memory footprint.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame mapping `missing_exp_tiles` to their closest
+        `valid_exp_tiles`. Original indices are `x_ix` and `y_ix`, and the
+        valid indices are labelled `valid_x_ix` and `valid_y_ix`.
+    """
 
     if len(valid_exp_tiles) == 0:
         return None
@@ -2871,7 +3106,32 @@ def get_closest_valid_exp_tiles(
     return missing_exp_tiles[["x_ix", "y_ix", "valid_x_ix", "valid_y_ix"]]
 
 
-def get_granular_grid(bbox, grid_width=3601, cap=1):
+def get_granular_grid(bbox, grid_width=3601, cap=sset.ELEV_CAP):
+    """Generate a dummy grid on a 1-degree tile using the same format and level
+    of granularity as the elevation tiles used in `sliiders` (i.e. 1 arcsec).
+
+    Parameters
+    ----------
+    bbox : shapely.Polygon
+        Bounding box of the 1-degree tile
+
+    grid_width : int
+        Number of pixels to use as width and height in the area defined by
+        `bbox`.
+
+    cap : int
+        An arbitrary integer higher than any elevations saved in SLIIDERS-ECON
+        outputs. Allows compatibility with functions that process elevation
+        tiles.
+
+    Returns
+    -------
+    granular_grid : xarray.DataArray
+        Grid with a dummy elevation variable set at `cap`, in the same format
+        as `sliiders` 1-degree elevation tiles.
+
+    """
+
     size = 1 / grid_width
 
     llon, llat, ulon, ulat = bbox.bounds
