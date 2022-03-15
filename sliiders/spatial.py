@@ -10,9 +10,9 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import pygeos
+import regionmask
 import shapely as shp
 import xarray as xr
-import regionmask
 from numba import jit
 from scipy.spatial import SphericalVoronoi, cKDTree
 from shapely.geometry import (
@@ -37,17 +37,18 @@ SPHERICAL_VORONOI_THRESHOLD = (
     1e-7  # `threshold` parameter of SphericalVoronoi() (not sure it can go any lower)
 )
 
+
 def match_stations_to_countries(countries, path_stations=sset.PATH_CIAM_SITES):
     """Get country of each CIAM station.
-    
+
     Parameters
     ----------
     countries : geopandas.GeoDataFrame
         GeoDataFrame of country shapes
-        
+
     path_stations : pathlib.Path
         Path to CIAM stations shapefile
-    
+
     """
     stations_wo_country = gpd.read_file(path_stations)
 
@@ -67,6 +68,7 @@ def match_stations_to_countries(countries, path_stations=sset.PATH_CIAM_SITES):
 
     # Clean and return
     return stations.drop(columns=["index_right"])
+
 
 def iso_poly_box_getter(iso, shp_df):
     """Get `box`es or rectangular areas of coordinates that contains each Polygon
@@ -194,21 +196,21 @@ def filter_spatial_warnings():
 
 def add_rand_color(gdf, col=None):
     """Get a list of random colors corresponding to either each row or each ID
-    (as defined by `col`) of a GeoDataFrame. Used in `sliiders` for diagnostic 
+    (as defined by `col`) of a GeoDataFrame. Used in `sliiders` for diagnostic
     visualizations, not functionality.
-    
+
     Parameters
     ----------
     gdf : geopandas.GeoDataFrame
         GeoDataFrame to assign colors to
-        
+
     col: str
         Column name in `gdf` to use as unique ID to assign colors to
 
     Returns
     -------
     colors : list-like, or pandas.Series
-        A list of random colors corresponding to each row, or to values 
+        A list of random colors corresponding to each row, or to values
         defined in gdf[`col`]
     """
     if col is None:
@@ -274,9 +276,9 @@ def get_points_on_lines(geom, distance, starting_length=0.0):
 
 
 def grab_lines(g):
-    """Get a LineString or MultiLineString representing all the lines in a 
+    """Get a LineString or MultiLineString representing all the lines in a
     geometry.
-    
+
     Parameters
     ----------
     g : shapely.Geometry
@@ -303,9 +305,9 @@ def grab_lines(g):
 
 
 def grab_polygons(g):
-    """Get a Polygon or MultiPolygon representing all the polygons in a 
+    """Get a Polygon or MultiPolygon representing all the polygons in a
     geometry.
-    
+
     Parameters
     ----------
     g : shapely.Geometry
@@ -315,7 +317,7 @@ def grab_polygons(g):
     -------
     shapely.Polygon or shapely.MultiPolygon
         A shapely.Geometry object representing all Polygons in `g`.
-    
+
     """
     if isinstance(g, Point):
         return Polygon()
@@ -334,7 +336,7 @@ def grab_polygons(g):
 
 def strip_line_interiors_poly(g):
     """Remove tiny interior Polygons from a Polygon.
-    
+
     Parameters
     ----------
     g : shapely.Polygon
@@ -355,7 +357,7 @@ def strip_line_interiors_poly(g):
 
 def strip_line_interiors(g):
     """Remove tiny interior Polygons from a Geometry.
-    
+
     Parameters
     ----------
     g : shapely.Geometry
@@ -366,8 +368,8 @@ def strip_line_interiors(g):
     -------
     shapely.Polygon or shapely.MultiPolygon
         A collection of Shapely Polygons equivalent to the set of Polygons
-        contained in `g`, removing any interior Polygons smaller than or equal 
-        to `sliiders.spatial.SMALLEST_INTERIOR_RING`, measured in 
+        contained in `g`, removing any interior Polygons smaller than or equal
+        to `sliiders.spatial.SMALLEST_INTERIOR_RING`, measured in
         "square degrees".
     """
     if isinstance(g, Polygon):
@@ -404,7 +406,7 @@ def fill_in_gaps(gdf):
     Not ideal for precise nearest-shape-matching, but useful in cases where
     gaps are small and/or insignificant but may lead to computational
     difficulties.
-    
+
     Parameters
     ----------
     gdf : geopandas.GeoDataFrame
@@ -468,21 +470,21 @@ def fill_in_gaps(gdf):
 def get_polys_in_box(all_polys, lx, ly, ux, uy):
     """Get the subset of shapes in `all_polys` that overlap with the box defined
     by `lx`, `ly`, `ux`, `uy`.
-    
+
     Parameters
     ----------
     all_polys : pygeos.Geometry
         Array of pygeos Polygons
-        
+
     lx : float
         Left (western) bound of box
-        
+
     ly : float
         Lower (southern) bound of box
-        
+
     ux : float
         Right (eastern) bound of box
-        
+
     uy : float
         Upper (northern) bound of box
 
@@ -491,9 +493,9 @@ def get_polys_in_box(all_polys, lx, ly, ux, uy):
     vertical_slab : pygeos.Geometry
         List of the pygeos polygons from `all_polys` overlapped with (cut by)
         the box.
-        
+
     slab_polys : np.array
-        List of indices from `all_polys` corresponding to the polygons in 
+        List of indices from `all_polys` corresponding to the polygons in
         `vertical_slab`.
     """
 
@@ -530,21 +532,21 @@ def grid_gdf(
 
     Note: This may be deprecated in a future version if something like this
     becomes available: https://github.com/pygeos/pygeos/pull/256
-    
+
     Parameters
     ----------
     orig_gdf : geopandas.GeoDataFrame
         GeoDataFrame to be divided into a grid
-        
+
     orig_geo_col : str
         Column in `orig_gdf` containing geometry to be divided
-        
+
     orig_id_col : str
         Column in `orig_gdf` containing ID to be conserved in output (as "UID")
-        
+
     box_size : float
         Width and height of boxes to divide geometries into
-        
+
     show_bar : bool
         Show progress bar
 
@@ -553,12 +555,12 @@ def grid_gdf(
     gridded_gdf : geopandas.GeoDataFrame
         GeoDataFrame containing `orig_gdf` geometries divided into grid cells.
         Includes fields `orig_ix` (i.e. index corresponding to `orig_gdf`),
-        `UID` (i.e. unique ID corresponding to `orig_id_col`), and 
+        `UID` (i.e. unique ID corresponding to `orig_id_col`), and
         `geometry` (i.e. resulting geometries, which are bound by grid cells)
-        
+
     all_oc : pygeos.Geometry
         List of pygeos Polygons corresponding to the "ocean" shapes in each
-        grid cell. Ocean shapes are defined as areas not covered by any 
+        grid cell. Ocean shapes are defined as areas not covered by any
         geometry in `orig_gdf`.
     """
 
@@ -627,20 +629,20 @@ def divide_pts_into_categories(
     tolerance=sset.DENSIFY_TOLERANCE,
     at_blank_tolerance=sset.MARGIN_DIST,
 ):
-    """From a set of points and IDs, divide points into "coastal-coastal" and 
-    "coastal-border" categories. 
-    
-    "Coastal" indicates proximity to the "coast", i.e. the edges of the union 
-    of all original polygons, defined by `all_oc`. "Border" indicates 
-    non-proximity to the coast. Proximity to the coast is calculated as being 
+    """From a set of points and IDs, divide points into "coastal-coastal" and
+    "coastal-border" categories.
+
+    "Coastal" indicates proximity to the "coast", i.e. the edges of the union
+    of all original polygons, defined by `all_oc`. "Border" indicates
+    non-proximity to the coast. Proximity to the coast is calculated as being
     within `at_blank_tolerance` of `all_oc`.
-    
-    "Coastal-border" points are defined as all coastal points that are within 
+
+    "Coastal-border" points are defined as all coastal points that are within
     `tolerance` of "border" points (points that are not near the coast).
-    
+
     "Coastal-coastal" points are defined as the remaining "coastal" points
     (not near a border).
-    
+
     The motivation for this function is to simplify the point set used to
     generate Voronoi regions from a set of polygons. Precision matters a lot
     in parts of shapes that are near borders with other regions, and less so
@@ -649,26 +651,26 @@ def divide_pts_into_categories(
     define the edges of a region. That is, they are entirely interior to a
     region's boundaries, so will not figure in the calculation of all areas
     nearest to that region.
-    
+
     Parameters
     ----------
     pts : np.ndarray
         2D array with dimensions 2xN, representing N longitude-latitude
         coordinates.
-    
+
     pt_gadm_ids : np.ndarray
         1D array representing N IDs corresponding to `pts`.
-    
+
     all_oc : pygeos.Geometry
         List of pygeos Polygons corresponding to the "ocean" shapes in each
-        grid cell. Ocean shapes should be defined as areas not covered by any 
+        grid cell. Ocean shapes should be defined as areas not covered by any
         geometry in the set of shapes represented here by their component
         points.
-    
+
     tolerance : float
         Maximum distance from one point to a point with a different ID for the
         first point to be considered a "border" point.
-    
+
     at_blank_tolerance : float
         Maximum distance from `all_oc` for a point to be considered "coastal".
 
@@ -754,42 +756,42 @@ def simplify_nonborder(
     coastal_border_gadm,
     tolerance=sset.MARGIN_DIST,
 ):
-    """Simplify coastal Voronoi generator points that are not near the border 
+    """Simplify coastal Voronoi generator points that are not near the border
     of another administrative region.
-    
+
     Parameters
     ----------
     coastal_coastal_pts : np.ndarray
-        2D array of longitude-latitude coordinates representing 
-        "coastal-coastal" points (see documentation in 
+        2D array of longitude-latitude coordinates representing
+        "coastal-coastal" points (see documentation in
         `divide_pts_into_categories()`.)
-    
+
     coastal_border_pts : np.ndarray
-        2D array of longitude-latitude coordinates representing 
-        "coastal-border" points (see documentation in 
+        2D array of longitude-latitude coordinates representing
+        "coastal-border" points (see documentation in
         `divide_pts_into_categories()`.)
-    
+
     coastal_coastal_gadm : np.ndarray
         1D array of region IDs corresponding to `coastal_coastal_pts`.
-    
+
     coastal_border_gadm : np.ndarray
         1D array of region IDs corresponding to `coastal_border_pts`.
-        
+
     tolerance : float
-        Precision in degree-distance below which we tolerate imprecision for 
+        Precision in degree-distance below which we tolerate imprecision for
         all points.
 
     Returns
     -------
     non_border : np.ndarray
         2D array of points that are not close to the border
-        
+
     non_border_gadm : np.ndarray
         1D array of region IDs corresponding to `non_border`.
-        
+
     now_border : np.ndarray
         2D array of points that are close to the border
-        
+
     now_border_gadm : np.ndarray
         1D array of region IDs corresponding to `now_border`.
     """
@@ -836,14 +838,14 @@ def simplify_nonborder(
 
 
 def explode_gdf_to_pts(geo_array, id_array):
-    """Transform an array of shapes into an array of coordinate pairs, keeping 
+    """Transform an array of shapes into an array of coordinate pairs, keeping
     the IDs of shapes aligned with the coordinates.
-    
+
     Parameters
     ----------
     geo_array : pygeos.Geometry
         Array of pygeos geometries
-        
+
     id_array : np.ndarray
         List of IDs corresponding to shapes in `geo_array`
 
@@ -851,9 +853,9 @@ def explode_gdf_to_pts(geo_array, id_array):
     -------
     pts : np.ndarray
         2D array of longitude-latitude pairs representing all points, rounded
-        to `sliiders.settings.ROUND_INPUT_POINTS` precision, represented in the 
+        to `sliiders.settings.ROUND_INPUT_POINTS` precision, represented in the
         geometries of `geo_array`.
-        
+
     pt_ids : np.ndarray
         1D array of IDs corresponding to `pts`.
     """
@@ -873,17 +875,17 @@ def explode_gdf_to_pts(geo_array, id_array):
 
 def polys_to_vor_pts(regions, all_oc, tolerance=sset.DENSIFY_TOLERANCE):
     """Create a set of Voronoi region generator points from a set of shapes.
-    
+
     Parameters
     ----------
     regions : geopandas.GeoDataFrame
         GeoDataFrame defining region boundaries, with `UID` unique ID field
-        
+
     all_oc : pygeos.Geometry
         List of pygeos Polygons corresponding to the "ocean" shapes in each
-        grid cell. Ocean shapes should be defined as areas not covered by any 
+        grid cell. Ocean shapes should be defined as areas not covered by any
         geometry in the set of `regions`.
-        
+
     tolerance : float
         Desired precision of geometries in `regions`
 
@@ -927,7 +929,7 @@ def polys_to_vor_pts(regions, all_oc, tolerance=sset.DENSIFY_TOLERANCE):
 
 def get_hemisphere_shape(hemisphere):
     """Define Shapely boxes for each hemisphere and the globe.
-    
+
     Parameters
     ----------
     hemisphere : str
@@ -949,9 +951,9 @@ def get_hemisphere_shape(hemisphere):
 
 
 def make_valid_shapely(g):
-    """Wrapper to call `make_valid` on a list of Shapely geometries. 
+    """Wrapper to call `make_valid` on a list of Shapely geometries.
     Should be deprecated upon release of Shapely 2.0.
-    
+
     Parameters
     ----------
     g : list-like
@@ -968,12 +970,12 @@ def make_valid_shapely(g):
 def clip_geoseries_by_rect(gs, rect):
     """Wrapper to mask a geopandas.GeoSeries by a Shapely rectangle.
     Should be deprecated upon release of Shapely 2.0.
-    
+
     Parameters
     ----------
     gs : geopandas.GeoSeries
         Any Geopandas GeoSeries
-        
+
     rect : shapely.Polygon
         A Shapely rectangle
 
@@ -994,12 +996,12 @@ def clip_geoseries_by_rect(gs, rect):
 
 def diff_geoseries(gs1, gs2):
     """Wrapper to get the spatial difference between two GeoSeries.
-    
+
     Parameters
     ----------
     gs1 : geopandas.GeoSeries
         Any GeoSeries
-        
+
     gs2 : geopandas.GeoSeries
         Any GeoSeries
 
@@ -1019,12 +1021,12 @@ def diff_geoseries(gs1, gs2):
 def lon_lat_to_xyz(lons, lats):
     """Transformation from longitude-latitude to an x-y-z cube
     with centroid [0, 0, 0]. Resulting points are on the unit sphere.
-    
+
     Parameters
     ----------
     lons : np.ndarray
         1D array of longitudes
-        
+
     lats : np.ndarray
         1D array of latitudes
 
@@ -1044,9 +1046,9 @@ def lon_lat_to_xyz(lons, lats):
 
 @jit(nopython=True, parallel=False)
 def xyz_to_lon_lat(xyz):
-    """Transformation from x-y-z cube with centroid [0, 0, 0] to 
+    """Transformation from x-y-z cube with centroid [0, 0, 0] to
     longitude-latitude.
-    
+
     Parameters
     ----------
     xyz : np.ndarray
@@ -1055,7 +1057,7 @@ def xyz_to_lon_lat(xyz):
     Returns
     -------
     np.ndarray
-        2D array representing longitude-latitude coordinates equivalent to 
+        2D array representing longitude-latitude coordinates equivalent to
         inputs
     """
     x, y, z = xyz[:, 0], xyz[:, 1], xyz[:, 2]
@@ -1137,23 +1139,24 @@ def fix_ring_topology(reg_group_polys, reg_group_loc_ids):
 
     return reg_group_polys, reg_group_loc_ids
 
+
 @jit(nopython=True)
 def numba_geometric_slerp(start, end, t):
     """Optimized version of scipy.spatial.geometric_slerp
-    
+
     Adapted from:
     https://github.com/scipy/scipy/blob/master/scipy/spatial/_geometric_slerp.py
-    
+
     Parameters
     ----------
     start : np.ndarray
         Single n-dimensional input coordinate in a 1-D array-like
         object. `n` must be greater than 1.
-        
+
     end : np.ndarray
         Single n-dimensional input coordinate in a 1-D array-like
         object. `n` must be greater than 1.
-        
+
     t : np.ndarray
         A float or 1D array-like of doubles representing interpolation
         parameters, with values required in the inclusive interval
@@ -1195,7 +1198,7 @@ def clip_to_sphere(poly_points):
     """Ensure 3D points do not reach outside of unit cube.
     As designed this should only correct for tiny differences that would make
     x-y-z to lon-lat conversion impossible.
-    
+
     Parameters
     ----------
     poly_points : np.ndarray
@@ -1211,28 +1214,29 @@ def clip_to_sphere(poly_points):
     poly_points = np.maximum(poly_points, -1)
     return poly_points
 
+
 def get_polygon_covering_pole(poly_points_lon_lat, nsign):
     """Convert a polygon defined by its edges into a polygon representing
     its latitude-longitude space comprehensively.
-    
+
     Coordinates that cover poles may define polygon boundaries but not
-    their relationship to a pole explicitly. For example, consider a polygon 
+    their relationship to a pole explicitly. For example, consider a polygon
     represented by these coordinates:
-    
+
     [[0, 60], [120, 60], [240, 60], [0, 60]]
-    
+
     This may represent the region of the earth above the 60-degree latitude
     line, or it may represent the region of the earth below that line. This
     function ensures an explicit definition on a projected coordinate system.
-    
+
     Parameters
     ----------
     poly_points_lon_lat : np.ndarray
         2D array of coordinates (longitude, latitude) representing a polygon
         that covers a pole.
-        
+
     nsign : int
-        Integer representing positive (nsign == 1: north pole) or negative 
+        Integer representing positive (nsign == 1: north pole) or negative
         (nsign == -1: south pole) sign of latitude of the pole to be covered.
 
     Returns
@@ -1278,7 +1282,7 @@ def get_polygon_covering_pole(poly_points_lon_lat, nsign):
 def ensure_validity(poly_points_lon_lat):
     """Resolve duplicate points and some floating point issues in polygons
     derived from `numba_process_points()`.
-    
+
     Parameters
     ----------
     poly_points_lon_lat : np.ndarray
@@ -1359,7 +1363,7 @@ def numba_divide_polys_by_meridians(poly_points_lon_lat):
 @jit(nopython=True, parallel=False)
 def interpolate_vertices_on_sphere(vertices):
     """Interpolate points in x-y-z space on a sphere.
-    
+
     Parameters
     ----------
     vertices : np.ndarray
@@ -1411,7 +1415,7 @@ def interpolate_vertices_on_sphere(vertices):
 @jit(nopython=True)
 def numba_process_points(vertices):
     """Densify x-y-z spherical vertices and convert to lon-lat space.
-    
+
     Parameters
     ----------
     vertices : np.ndarray
@@ -1432,7 +1436,7 @@ def numba_process_points(vertices):
 def get_groups_of_regions(
     loc_reg_lists, loc, sv, includes_southpole, includes_northpole, combine_by_id=True
 ):
-    
+
     reg_group = get_reg_group(loc_reg_lists, loc, sv.regions)
     if not combine_by_id:
         return reg_group
@@ -1487,13 +1491,13 @@ def get_spherical_voronoi_gdf(pts_df, show_bar=True):
     """From a list of points associated with IDs (which must be specified by 'UID'),
     calculate the region of a globe closest to each ID-set, and return a
     GeoDataFrame representing those "nearest" Polygons/MultiPolygons.
-    
+
     Parameters
     ----------
     pts_df : geopandas.GeoDataFrame or pandas.DataFrame
-        DataFrame of points to be used as Voronoi generators, including `x` 
+        DataFrame of points to be used as Voronoi generators, including `x`
         and `y` coordinates, and a `UID` unique ID.
-        
+
     show_bar : bool
         Show progress bar
 
@@ -1572,11 +1576,12 @@ def get_spherical_voronoi_gdf(pts_df, show_bar=True):
 
     return polys_gdf
 
+
 def append_extra_pts(sites):
     """Define three extra points at the pole farthest from any point in `sites`
     These can be necessary for compataibility with `SphericalVoronoi` when the
     number of original sites is less than four.
-    
+
     Parameters
     ----------
     sites : pandas.DataFrame
@@ -1602,9 +1607,10 @@ def append_extra_pts(sites):
 
     return pd.concat([sites, extra_pts])
 
+
 def get_voronoi_from_sites(sites):
     """Get the Voronoi diagram corresponding to the points defined by `sites`.
-    
+
     Parameters
     ----------
     sites : geopandas.GeoDataFrame
@@ -1627,11 +1633,12 @@ def get_voronoi_from_sites(sites):
 
     return vor_gdf
 
+
 def get_stations_by_iso_voronoi(stations):
     """From the GeoDataFrame of GTSM stations with assigned ISO values,
     calculate a globally comprehensive set of shapes for each ISO mapping to the
     closest station that has that ISO.
-    
+
     Parameters
     ----------
     stations : geopandas.GeoDataFrame
@@ -1643,16 +1650,16 @@ def get_stations_by_iso_voronoi(stations):
         A GeoDataFrame with fields `station_id`, `ISO`, and `geometry`, where
         `geometry` represents the region of the globe corresponding to the area
         closer to station `station_id` than any other station in that `ISO`
-    
+
     """
-    
-    # Make sure none of the stations with too few points to calculate SphericalVoronoi 
+
+    # Make sure none of the stations with too few points to calculate SphericalVoronoi
     # are anywhere near the poles, so we can introduce the poles as extra points
     iso_count = pd.DataFrame(stations.groupby("ISO")["ISO"].count()).rename(
         columns={"ISO": "count"}
     )
     stations = stations.join(iso_count, on="ISO")
-    
+
     # Rename columns for compatibility with Voronoi functions
     stations = stations.rename(columns={"lat": "y", "lon": "x", "station_id": "UID"})
 
@@ -1691,7 +1698,7 @@ def get_stations_by_iso_voronoi(stations):
 def remove_duplicate_points(pts_df):
     """Remove points in DataFrame that are too close to each other to be
     recognized as different in the `SphericalVoronoi` algorithm.
-    
+
     Parameters
     ----------
     pts_df : geopandas.GeoDataFrame or pandas.DataFrame
@@ -1700,7 +1707,7 @@ def remove_duplicate_points(pts_df):
     Returns
     -------
     geopandas.DataFrame or pandas.DataFrame
-        DataFrame of `pts_df` points, with duplicates removed (i.e. leave one 
+        DataFrame of `pts_df` points, with duplicates removed (i.e. leave one
         of each set of duplicates).
     """
 
@@ -1723,10 +1730,10 @@ def remove_already_attributed_land_from_vor(
     existing, vor_shapes, vor_ix, gridded_uid, vor_uid, all_gridded, show_bar=True
 ):
     """Mask Voronoi regions with the pre-existing regions, so that the result
-    includes only the parts of the Voronoi regions that are not already 
+    includes only the parts of the Voronoi regions that are not already
     assigned to the pre-existing regions.
     """
-    
+
     calculated = []
 
     iterator = range(len(vor_shapes))
@@ -1744,10 +1751,11 @@ def remove_already_attributed_land_from_vor(
 
     return gpd.GeoSeries(pygeos.to_shapely(calculated))
 
+
 def get_voronoi_regions(full_regions):
-    """Computes a globally comprehensive set of shapes corresponding to the 
+    """Computes a globally comprehensive set of shapes corresponding to the
     nearest regions in each place from the set of `full_regions`.
-    
+
     Parameters
     ----------
     full_regions : geopandas.GeoDataFrame
@@ -1792,7 +1800,9 @@ def get_voronoi_regions(full_regions):
 
     vor_gdf["calculated"].plot()
 
-    vor_gdf = vor_gdf.drop(columns=["geometry"]).rename(columns={"calculated": "geometry"})
+    vor_gdf = vor_gdf.drop(columns=["geometry"]).rename(
+        columns={"calculated": "geometry"}
+    )
 
     full_regions = pd.merge(
         full_regions,
@@ -1806,7 +1816,9 @@ def get_voronoi_regions(full_regions):
 
     full_regions.head()
 
-    full_regions["combined"] = full_regions["geometry"].union(full_regions["calculated"])
+    full_regions["combined"] = full_regions["geometry"].union(
+        full_regions["calculated"]
+    )
 
     full_regions["combined"].plot(figsize=(20, 20))
 
@@ -1824,14 +1836,15 @@ def get_voronoi_regions(full_regions):
 
     return out
 
+
 def get_points_along_segments(segments):
     """Get a set of points along line segments. Calls `pygeos.segmentize()`
     to interpolate between endpoints of each line segment.
-    
+
     Parameters
     ----------
     segments : geopandas.GeoDataFrame
-        GeoDataFrame representing segments (as (Multi)LineStrings or 
+        GeoDataFrame representing segments (as (Multi)LineStrings or
         (Multi)Polygons), with `UID` unique ID, and `ISO` fields.
 
     Returns
@@ -1866,7 +1879,7 @@ def get_points_along_segments(segments):
     all_pts_df = gpd.GeoDataFrame(
         all_pts_df, geometry=gpd.points_from_xy(all_pts_df["x"], all_pts_df["y"])
     )
-    
+
     return all_pts_df
 
 
@@ -2204,22 +2217,23 @@ def coastlen_poly(
 
     return lensum
 
+
 def simplify_coastlines(path_coastlines):
-    """Read in coastlines and break them up into their component (2-point) 
+    """Read in coastlines and break them up into their component (2-point)
     line segments
-    
+
     Parameters
     ----------
     path_coastlines : pathlib.Path
         Path to a shapefile containing a set of global coastline `LINESTRING`s
         with a `line_id` field.
-        
+
     Returns
     -------
     coastlines : geopandas.GeoDataFrame
         GeoDataFrame containing broken-up coastlines with their original
         associated `line_id`
-    
+
     """
     coastlines = gpd.read_file(path_coastlines)
 
@@ -2248,15 +2262,15 @@ def simplify_coastlines(path_coastlines):
 
 
 def join_coastlines_to_isos(coastlines, path_regions_voronoi):
-    """Get country-level coastlines by calculating intersection between 
+    """Get country-level coastlines by calculating intersection between
     coastlines and countries.
-    
+
     Parameters
     ----------
     coastlines : geopandas.GeoDataFrame
         GeoDataFrame representing simplified global coastlines, i.e. outputs of
         `simplify_coastlines()`
-        
+
     path_regions_voronoi: pathlib.Path
         Path to a GeoParquet including an `ISO` field and a `geometry` field.
         Should be globally comprehensive, with a one-to-one mapping from coordinates
@@ -2265,9 +2279,9 @@ def join_coastlines_to_isos(coastlines, path_regions_voronoi):
     Returns
     -------
     joined : geopandas.GeoDataFrame
-        A GeoDataFrame with fields `line_id`, `region_geo`, `ISO`, 
-        and `geometry`, where `geometry` represents the (entire) original 
-        linestring corresponding to the `line_id` that overlaps with the 
+        A GeoDataFrame with fields `line_id`, `region_geo`, `ISO`,
+        and `geometry`, where `geometry` represents the (entire) original
+        linestring corresponding to the `line_id` that overlaps with the
         `region_geo` defined by `path_regions_voronoi`
     """
     # Use regions as a proxy for countries. It's faster because the regions are more
@@ -2296,20 +2310,20 @@ def join_coastlines_to_isos(coastlines, path_regions_voronoi):
 
 
 def get_coastlines_by_iso(path_coastlines, path_regions_voronoi, plot=True):
-    """Get country-level coastlines by calculating intersection between 
+    """Get country-level coastlines by calculating intersection between
     coastlines and countries.
-    
+
     Parameters
     ----------
     path_coastlines : pathlib.Path
         Path to a shapefile containing a set of global coastline `LINESTRING`s
         with a `line_id` field.
-        
+
     path_regions_voronoi : pathlib.Path
         Path to a GeoParquet including an `ISO` field and a `geometry` field.
         Should be globally comprehensive, with a one-to-one mapping from coordinates
         to ISO values.
-        
+
     plot : bool
         True to see resulting coastlines by country, False to suppress plotting
 
@@ -2320,7 +2334,7 @@ def get_coastlines_by_iso(path_coastlines, path_regions_voronoi, plot=True):
         `geometry` represents the part of the linestring corresponding to
         `line_id` that falls within the `ISO` defined by `path_regions_voronoi`
     """
-    
+
     # Get coastal components (line segments)
     coastlines = simplify_coastlines(path_coastlines)
 
@@ -2343,23 +2357,24 @@ def get_coastlines_by_iso(path_coastlines, path_regions_voronoi, plot=True):
 
     return coastlines
 
+
 def get_coastal_segments_by_ciam_site(
     path_sites_voronoi_by_iso, path_coastlines_by_iso, plot=True
 ):
     """Generate coastal segments corresponding to each CIAM site.
-    
+
     Parameters
     ----------
     path_sites_voronoi_by_iso : pathlib.Path
-        Path to a GeoParquet with fields `station_id`, `ISO`, and `geometry`, 
-        where `geometry` represents the region of the globe corresponding 
-        to the area closer to station `station_id` than any other station 
+        Path to a GeoParquet with fields `station_id`, `ISO`, and `geometry`,
+        where `geometry` represents the region of the globe corresponding
+        to the area closer to station `station_id` than any other station
         in that `ISO`. (i.e. the output of `get_stations_by_iso_voronoi()`)
-        
+
     path_coastlines_by_iso : pathlib.Path
         Path to a GeoParquet with fields `line_id`, `ISO`, and `geometry`, where
         `geometry` represents the part of the linestring corresponding to
-        `line_id` that falls within the `ISO` defined by 
+        `line_id` that falls within the `ISO` defined by
         `path_regions_voronoi`. (i.e. the output of `get_coastlines_by_iso()`)
 
     Returns
@@ -2368,7 +2383,7 @@ def get_coastal_segments_by_ciam_site(
         GeoDataFrame with fields `station_id`, `ISO`, and `geometry`, where
         `geometry` represents the the coastline within some ISO that is closer
         to the associated CIAM `station_id` than any other site within that ISO.
-    
+
     """
     # Read site (point) ISO-level Voronoi, ISO-level coastlines
     site_vor = gpd.read_parquet(path_sites_voronoi_by_iso).set_crs(epsg=4326)
@@ -2439,16 +2454,17 @@ def dist_matrix(
     # get dist
     return great_circle_dist(ax1, ay1, bx1, by1)
 
+
 def get_country_level_voronoi_gdf(all_pts_df, segments):
     """Get Voronoi diagram within a country based on a set of points derived
     from that country's CIAM coastal segments.
-    
+
     Parameters
     ----------
     all_pts_df : pandas.DataFrame or geopandas.GeoDataFrame
         DataFrame of Voronoi-generator points within a country, including
         `UID`, `x`, and `y` fields.
-        
+
     segments : pandas.DataFrame or geopandas.GeoDataFrame
         DataFrame of segments from which `UID` in `all_pts_df` is derived.
         Must also include `ISO` field.
@@ -2480,37 +2496,34 @@ def get_country_level_voronoi_gdf(all_pts_df, segments):
 
     # Revert ID name
     vor_gdf = vor_gdf.rename(columns={"UID": "station_id"})
-    
+
     return vor_gdf
 
+
 def generate_voronoi_from_segments(
-    path_segments,
-    path_region_voronoi,
-    region_name_orig,
-    overlay_name,
-    region_name
+    path_segments, path_region_voronoi, region_name_orig, overlay_name, region_name
 ):
-    """Get global Voronoi diagram based on a set of CIAM coastal segments and 
+    """Get global Voronoi diagram based on a set of CIAM coastal segments and
     administrative regions.
-    
+
     Parameters
     ----------
     path_segments : pathlib.Path
         Path to CIAM segments GeoParquet
-        
+
     path_region_voronoi : pathlib.Path
         Path to GeoParquet representing administrative Voronoi regions
-        
+
     region_name_orig : str
         Name of unique ID field in `path_region_voronoi`
-        
+
     overlay_name : str
         Name of the field in the returned GeoDataFrame representing the
         intersections between administrative Voronoi regions and segment-based
         Voronoi regions.
-    
+
     region_name : str
-        Name of the substring in a field of the returned GeoDataFrame 
+        Name of the substring in a field of the returned GeoDataFrame
         representing the administrative Voronoi regions.
 
     Returns
@@ -2518,7 +2531,7 @@ def generate_voronoi_from_segments(
     all_overlays : geopandas.GeoDataFrame
         GeoDataFrame representing Voronoi shapes, as administrative Voronoi
         regions intersected with segment-based Voronoi regions.
-        
+
     ciam_polys : geopandas.GeoDataFrame
         GeoDataFrame representing segment-based Voronoi regions.
     """
@@ -2586,7 +2599,6 @@ def generate_voronoi_from_segments(
         + all_overlays["region"].astype(str)
     )
 
-
     ciam_polys = all_overlays.dissolve("station_id", as_index=False).drop(
         columns=["region", overlay_name]
     )
@@ -2594,8 +2606,9 @@ def generate_voronoi_from_segments(
     ciam_polys["geometry"] = ciam_polys["geometry"].apply(strip_line_interiors)
 
     assert ciam_polys.is_valid.all()
-    
+
     return all_overlays, ciam_polys
+
 
 def get_degree_box(row):
     """
@@ -2634,21 +2647,21 @@ def get_tile_names(df, lon_col, lat_col):
 def get_all_exp_tiles(exp_path, filter_field=None):
     """
     Get the list of tiles included in an exposure dataset.
-    
+
     Parameters
     ----------
     exp_path : pathlib.Path
         Path to exposure Parquet. Must be indexed by `x_ix` and `y_ix`
-        
+
     filter_field : str
         Field to filter on. Filter is set to filter out values that are not
         greater than 0.
-    
+
     Returns
     -------
     np.ndarray
         1D array of unique 1-degree tile names
-    
+
     """
 
     pq_filter = None
@@ -2679,18 +2692,19 @@ def get_all_exp_tiles(exp_path, filter_field=None):
 
     return lonlats["tile_name"].values
 
+
 def get_bbox(tile_name):
     """
     Return bounding box from tile name in the string format "VXXHYYY" representing the southwestern corner of a 1-degree tile,
     where "V" is "N" (north) or "S" (south), "H" is "E" (east) or "W" (west), "XX" is a two-digit zero-padded number indicating
     the number of degrees north or south from 0,0, and "YYY" is a three-digit zero-padded number indicating the number of degrees
     east or west from 0,0.
-    
+
     Parameters
     ----------
     tile_name : str
         Tile name in the format described above
-        
+
     Returns
     -------
     shapely.Polygon
@@ -2711,6 +2725,7 @@ def get_bbox(tile_name):
     ulon = llon + 1
 
     return box(llon, llat, ulon, ulat)
+
 
 def get_partial_covering_matches(elev_tile, bbox, gdf, id_name=None):
     """
@@ -2755,6 +2770,7 @@ def get_partial_covering_matches(elev_tile, bbox, gdf, id_name=None):
 
     return region_matches
 
+
 def get_vor_matches(
     elev_tile, bbox, regions_df, id_name, out_name, ISO=None, assert_filled=True
 ):
@@ -2783,6 +2799,7 @@ def get_vor_matches(
 
     return mask_df[out_name]
 
+
 def get_empty_exp_grid(elev_tile, this_exp, litpop_grid_width):
     mg = np.meshgrid(elev_tile.x.values, elev_tile.y.values)
 
@@ -2802,12 +2819,14 @@ def get_empty_exp_grid(elev_tile, this_exp, litpop_grid_width):
 
     return df
 
+
 def get_cell_size_km(da, bbox):
     # grid cell area is determined by latitude
     tile_size_km = np.cos(np.deg2rad(bbox.centroid.y)) * (spatial.LAT_TO_M / 1000) ** 2
     cell_size_km = tile_size_km / da.size
 
     return cell_size_km
+
 
 def get_closest_valid_exp_tiles(
     missing_exp_tiles, valid_exp_tiles, max_batch_comparisons=int(2e7)
@@ -2850,6 +2869,7 @@ def get_closest_valid_exp_tiles(
     )
 
     return missing_exp_tiles[["x_ix", "y_ix", "valid_x_ix", "valid_y_ix"]]
+
 
 def get_granular_grid(bbox, grid_width=3601, cap=1):
     size = 1 / grid_width

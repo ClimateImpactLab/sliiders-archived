@@ -711,12 +711,12 @@ def smooth_fill(
     `da2_in`.
 
     For instance, one may use this with storm datasets. If filling the beginning or end
-    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of 
-    overlap and then use the `da2_in` values only to estimate the "change" in values 
+    of a storm, pin the `da2_in` value to the `da1_in` value at the first/last point of
+    overlap and then use the `da2_in` values only to estimate the "change" in values
     over time, using a ratio of predicted value in the desired time to the reference
-    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in` 
+    time. This can also be used when, for example, `da1_in` refers to RMW and `da2_in`
     refers to ROCI. In this case, you want to define ``fill_all_null=False`` to avoid
-    filling RMW with ROCI when no RMW values are available but some ROCI values are 
+    filling RMW with ROCI when no RMW values are available but some ROCI values are
     available.
 
     Parameters
