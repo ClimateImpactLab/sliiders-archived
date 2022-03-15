@@ -395,7 +395,7 @@ EXTENDED_ISOS = ["GGY+JEY", "CHI", "XKX"]
 ALL_ISOS_EXTENDED = np.sort(np.union1d(ALL_ISOS, EXTENDED_ISOS))
 
 # Dask image name
-DASK_LATEST_WORKER_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
+DASK_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
 
 # Constants
 ## Data
