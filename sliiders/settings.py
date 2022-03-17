@@ -47,7 +47,7 @@ LOCALIZESL_REV = "c9b020a0f9409cde3f6796ca936f229c90f7d5c6"
 # Aland Islands, Western Sahara, Libya, Palestine, South Sudan, Syria, Kosovo
 ISOS_IN_GEG_NOT_LITPOP = ["ALA", "ESH", "LBY", "PSE", "SSD", "SYR", "XKX"]
 
-## for organizing
+## for organizing scenarios
 SSP_PROJ_ORG_SER = pd.Series(
     {
         "SSP1_v9_130219": "SSP1",
@@ -78,6 +78,18 @@ SSP_PROJ_ORG_SER = pd.Series(
         "PIK GDP-32": "PIK",
     }
 )
+SCENARIOS = [
+    ("SSP1", "OECD"),
+    ("SSP1", "IIASA"),
+    ("SSP2", "OECD"),
+    ("SSP2", "IIASA"),
+    ("SSP3", "OECD"),
+    ("SSP3", "IIASA"),
+    ("SSP4", "OECD"),
+    ("SSP4", "IIASA"),
+    ("SSP5", "OECD"),
+    ("SSP5", "IIASA"),
+]
 
 ## country ISO code groupings
 EXCLUDED_ISOS = ["ATA", "XCA"]
