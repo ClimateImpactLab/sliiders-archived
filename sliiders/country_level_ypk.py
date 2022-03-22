@@ -1,4 +1,5 @@
 # various functions used for the country-level information workflow
+import re
 from itertools import product as lstprod
 
 import matplotlib.pyplot as plt
@@ -7,7 +8,13 @@ import pandas as pd
 from scipy.optimize import minimize as opt_min
 from tqdm.auto import tqdm
 
-from .settings import PATH_PWT_RAW, PPP_CCODE_IF_MSNG, SCENARIOS, SSP_PROJ_ORG_SER
+from .settings import (
+    CTRIES_REGIONS_GWDB_2021,
+    PATH_PWT_RAW,
+    PPP_CCODE_IF_MSNG,
+    SCENARIOS,
+    SSP_PROJ_ORG_SER,
+)
 
 
 def log_lin_interpolate(df, header="v_"):
@@ -1277,3 +1284,131 @@ def top_bottom_10(df, yr=2100, ssp="SSP3", capvar="capital_estim"):
     fig.show()
 
     return None
+
+
+def organize_gwdb_2021_page(
+    pagetext, start_c, end_c, countries=CTRIES_REGIONS_GWDB_2021
+):
+    """Organizes Global Wealth Databook 2021 (or GWDB 2021, from Credit Suisse)
+    page-level information from text to pandas.DataFrame.
+
+    Parameters
+    ----------
+    pagetext : str
+        Unorganized page-level information from GWDB 2021
+    start_c : str
+        First country or region name to appear on the page
+    end_c : str
+        Last country or region name to appear on the page
+    countries : array-like of str
+        All countries or regions appearing on GWDB 2021, not limited to the page; should
+        be ordered by their order of appearance in the Databook.
+
+    Returns
+    -------
+    organized_df : pandas.DataFrame
+        Page-level information organized into a pandas.DataFrame
+
+    """
+
+    # getting the ordered list of countries to use
+    for i, ctry in enumerate(countries):
+        if ctry == start_c:
+            idx_s = i
+        elif ctry == end_c:
+            idx_e = i + 1
+            break
+    relevant = countries[idx_s:idx_e]
+
+    # overlapping country name-related organization
+    country_clean = None
+    if "Guinea" in relevant:
+        country_clean = "Guinea"
+        join = "|".join([i for i in relevant if i != "Guinea"])
+    elif "Niger" in relevant:
+        country_clean = "Niger"
+        join = "|".join([i for i in relevant if i != "Niger"])
+    elif "South Africa" in relevant:
+        country_clean = "Africa"
+        join = "|".join([i for i in relevant if i != "Africa"])
+    else:
+        join = "|".join(relevant)
+
+    rows = [i for i in re.split(join, pagetext.replace("\n", "")) if i is not None]
+
+    # getting the year information
+    for i in range(2000, 2021):
+        if f"(end-{i})" in rows[0]:
+            year_info = i
+            break
+
+    # exception with page having 2001 data with Sierra Leone information
+    if ("Sierra Leone" in relevant) and (year_info == 2001):
+        relevant = [i for i in relevant if i != "World"]
+
+    rows = [i for i in rows if "USD" not in i]
+    if country_clean is not None:
+        rows_cl = []
+        for i in rows:
+            if country_clean in i:
+                rows_cl += i.split(country_clean)
+            else:
+                rows_cl.append(i)
+        rows = list(rows_cl)
+
+    # organizing the rows
+    org_rows = []
+    for i, row in enumerate(rows):
+        region_tf = False
+        if "Regression Update" in row:
+            row = row.replace("Regression Update", "reg_update")
+        elif "Regression" in row:
+            row = row.replace("Regression", "reg")
+        elif "Original data" in row:
+            row = row.replace("Original data", "orig_data")
+        else:
+            region_tf = True
+
+        row = [i for i in row.replace(",", "").split(" ") if len(i) > 0]
+        if region_tf:
+            row.append("region")
+
+        if len(row) != 10:
+            print(relevant[i])
+        else:
+            org_rows.append([relevant[i], year_info] + row)
+
+    # organizing into a DataFrame
+    column_names = [
+        "country",
+        "year",
+        "n_adults",
+        "pct_adults",
+        "total_wealth",
+        "pct_wealth",
+        "wealth_per_adult",
+        "financial_wealth_per_adult",
+        "nonfinancial_wealth_per_adult",
+        "debt_per_adult",
+        "median_wealth_per_adult",
+        "estimation_method",
+    ]
+
+    organized_df = pd.DataFrame(org_rows, columns=column_names)
+    for i in column_names[2:-1]:
+        organized_df[i] = organized_df[i].astype("float64")
+    organized_df["year"] = organized_df["year"].astype("int64")
+
+    # removing China and India (as regions) since their country-level information
+    # is already available (clean-up for redundancy)
+    organized_df = organized_df.loc[
+        ~(
+            (organized_df.estimation_method == "region")
+            & ((organized_df.country == "China") | (organized_df.country == "India"))
+        )
+    ].copy()
+
+    # setting index
+    organized_df.set_index(["country", "year"], inplace=True)
+
+    return organized_df
