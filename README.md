@@ -7,7 +7,7 @@ This repository hosts the code used to create the [SLIIDERS-ECON](https://doi.or
 
 **SLIIDERS-ECON** contains socioeconomic variables, varying horizontally and vertically over space. **SLIIDERS-SLR** contains Monte Carlo projections of Local Sea Level Rise under different emissions and ice sheet dynamics assumptions, based on the outputs of [LocalizeSL](https://github.com/bobkopp/LocalizeSL). Coastal segments in SLIIDERS-ECON can be matched to gridded LSLR projections in SLIIDERS-SLR via the `SLR_site` key.
 
-All work utilizing this code or the resulting SLIIDERS datasets should cite Depsky et al. 2022 (in prep.). See [License](#license) for details.
+All work utilizing this code or the resulting SLIIDERS datasets should cite Depsky, Bolliger et al. 2022 (in prep.). See [License](#license) for details.
 
 ## Installation
 Most users will want to just use the datasets directly, accessible at the DOIs linked above. If you wish to recreate and/or modify the datasets, which we encourage, you will need to run the Jupyter notebooks in this repository. A collection of helper functions, organized into a Python package, is necessary to run the notebooks and can be found within the `sliiders` directory. A simple pip install will install this package
