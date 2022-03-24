@@ -3192,6 +3192,37 @@ def process_landscan(
     save_to_file=True,
     NWORKERS=20,
 ):
+    """Convert raw LandScan Zip-file into format suitable for global `sliiders`
+    grid.
+
+    Parameters
+    ----------
+    landscan_zip : pathlib.Path
+        Path to raw Zip-file downloaded from LandScan
+
+    dir_landscan_raw : pathlib.Path
+        Path to unzipped LandScan directory containing raw files
+
+    dir_landscan_int : pathlib.Path
+        Path to directory in which to store output of this function
+
+    landscan_year : str
+        Year (i.e. version) of LandScan dataset, e.g. "2019"
+
+    save_to_file : bool
+        Whether to save the output in a file. If True, two files will be saved
+        within `dir_landscan_int`, one with `x_ix`, `y_ix`, and `population`,
+        and another with the additional fields `x` and `y` to represent
+        longitude and latitude.
+
+    NWORKERS : int
+        Number of Dask workers with which to run this function.
+
+    Returns
+    -------
+    pop_df : pandas.DataFrame
+        DataFrame of global population indexed by `x_ix`, `y_ix` coordinates
+    """
     warnings.filterwarnings(
         "ignore", message=f".*Reshaping is producing a large chunk*"
     )
