@@ -1,5 +1,6 @@
 import random
 import warnings
+import zipfile
 from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Sequence, Union
@@ -11,8 +12,11 @@ import numpy as np
 import pandas as pd
 import pygeos
 import regionmask
+import rioxarray
 import shapely as shp
 import xarray as xr
+from dask_gateway import Gateway
+from IPython.display import display
 from numba import jit
 from scipy.spatial import SphericalVoronoi, cKDTree
 from shapely.geometry import (
@@ -3178,3 +3182,79 @@ def get_granular_grid(bbox, grid_width=3601, cap=sset.ELEV_CAP):
     granular_grid = granular_grid.to_xarray().v
 
     return granular_grid
+
+
+def process_landscan(
+    landscan_zip,
+    dir_landscan_raw,
+    dir_landscan_int,
+    landscan_year,
+    save_to_file=True,
+    NWORKERS=20,
+):
+    warnings.filterwarnings(
+        "ignore", message=f".*Reshaping is producing a large chunk*"
+    )
+
+    ### Unzipping
+    path_landscan = dir_landscan_raw / f"lspop{landscan_year}" / "hdr.adf"
+
+    if not path_landscan.exists():
+        with zipfile.ZipFile(landscan_zip, "r") as zip_ref:
+            zip_ref.extractall(dir_landscan_raw)
+
+    ### Organizing TIF to parquet
+
+    image_name = sset.DASK_IMAGE
+    gateway = Gateway()
+    cluster = gateway.new_cluster(worker_image=image_name, profile="micro")
+    client = cluster.get_client()
+    cluster.scale(NWORKERS)
+    display(cluster)
+
+    #### Open raw population raster
+
+    pop_ds = rioxarray.open_rasterio(path_landscan, chunks={"x": 2700, "y": 10440})
+    pop_ds = pop_ds.squeeze().drop("band")
+
+    # Replace null values with 0's
+    pop_ds = pop_ds.where(pop_ds >= 0, 0)
+    pop_ds = pop_ds.persist()
+
+    #### Transform to dataframe
+
+    pop_da = pop_ds.to_dataset(name="population")
+    pop_ddf = pop_da.to_dask_dataframe()
+    pop_ddf = pop_ddf.drop(columns=["spatial_ref"])
+    pop_ddf = pop_ddf.persist()
+    pop_ddf = pop_ddf[pop_ddf["population"] > 0].persist()
+
+    # Bring to local
+    pop_df = pop_ddf.compute()
+
+    #### Convert coordinates to indices
+
+    pop_df["x_ix"] = grid_val_to_ix(pop_df["x"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
+
+    pop_df["y_ix"] = grid_val_to_ix(pop_df["y"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
+
+    #### Drop unnecessary columns
+
+    pop_with_xy = pop_df.copy()
+    pop_df = pop_df.drop(columns=["x", "y"]).reset_index(drop=True)
+    pop_with_xy = pop_with_xy.reset_index(drop=True)
+
+    #### Save and shut down workers
+    if save_to_file:
+        dir_landscan_int.mkdir(exist_ok=True)
+        pop_df.to_parquet(dir_landscan_int / "population.parquet", index=False)
+        pop_with_xy.to_parquet(
+            dir_landscan_int / "population_with_xy.parquet", index=False
+        )
+
+    cluster.scale(0)
+    client.close()
+    cluster.close()
+    cluster.shutdown()
+
+    return pop_df
