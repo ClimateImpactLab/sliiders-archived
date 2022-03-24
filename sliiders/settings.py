@@ -436,8 +436,6 @@ SMALLEST_INTERIOR_RING = 1e-13
 SVALS = np.array([10, 100, 1000, 10000])
 
 # Paths and Directories
-HOME = Path(pkg_init_name).parent.parent
-
 DIR_DATA = Path("/gcs/rhg-data/impactlab-rhg/coastal/sliiders")
 
 DIR_DATA_RAW = DIR_DATA / "raw"
