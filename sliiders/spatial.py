@@ -430,9 +430,11 @@ def fill_in_gaps(gdf):
     current_coverage = missing
 
     for buffer_size in tqdm([0.01, 0.01, 0.01, 0.03, 0.05, 0.1, 0.1, 0.1]):
-        intersects_missing["buffer"] = intersects_missing["geometry"].buffer(
-            buffer_size
-        )
+        with warnings.catch_warnings():
+            filter_spatial_warnings()
+            intersects_missing["buffer"] = intersects_missing["geometry"].buffer(
+                buffer_size
+            )
 
         new_buffers = []
         for i in intersects_missing.index:
@@ -611,7 +613,7 @@ def grid_gdf(
     geom = np.concatenate(boxes).flatten()
 
     gridded_gdf = gpd.GeoDataFrame(
-        {"orig_ix": geom_ix}, geometry=pygeos.to_shapely(geom)
+        {"orig_ix": geom_ix}, geometry=pygeos.to_shapely(geom), crs=orig_gdf.crs
     )
     gridded_gdf["UID"] = np.take(
         orig_gdf[orig_id_col].to_numpy(), gridded_gdf["orig_ix"].to_numpy()
@@ -1829,7 +1831,14 @@ def remove_duplicate_points(pts_df):
 
 
 def remove_already_attributed_land_from_vor(
-    vor_shapes, all_gridded, vor_ix, existing, vor_uid, gridded_uid, show_bar=True
+    vor_shapes,
+    all_gridded,
+    vor_ix,
+    existing,
+    vor_uid,
+    gridded_uid,
+    show_bar=True,
+    crs=None,
 ):
     """Mask Voronoi regions with the pre-existing regions, so that the result
     includes only the parts of the Voronoi regions that are not already
@@ -1878,7 +1887,7 @@ def remove_already_attributed_land_from_vor(
             remaining = vor_shapes[ix]
         calculated.append(remaining)
 
-    return gpd.GeoSeries(pygeos.to_shapely(calculated))
+    return gpd.GeoSeries(pygeos.to_shapely(calculated), crs=crs)
 
 
 def get_voronoi_regions(full_regions):
@@ -1899,7 +1908,8 @@ def get_voronoi_regions(full_regions):
     """
     region_polys = full_regions.explode(index_parts=False)
 
-    # This has been tested with XYZ coordinates so cannot guarantee performance on more complex shapefiles
+    # This has been tested with XYZ coordinates so cannot guarantee performance on more
+    # complex shapefiles
     assert (
         pygeos.count_coordinates(pygeos.from_shapely(region_polys["geometry"]))
         < sset.MAX_VORONOI_COMPLEXITY
@@ -1910,8 +1920,6 @@ def get_voronoi_regions(full_regions):
     pts_df = polys_to_vor_pts(region_polys, all_oc)
 
     vor_gdf = get_spherical_voronoi_gdf(pts_df)
-
-    vor_gdf.plot()
 
     vor_shapes = pygeos.from_shapely(vor_gdf["geometry"])
     all_gridded = pygeos.from_shapely(gridded_gdf["geometry"])
@@ -1924,18 +1932,18 @@ def get_voronoi_regions(full_regions):
     vor_uid = np.take(vor_gdf["UID"].to_numpy(), vor_ix)
 
     vor_gdf["calculated"] = remove_already_attributed_land_from_vor(
-        vor_shapes, all_gridded, vor_ix, existing, vor_uid, gridded_uid
-    )
-
-    vor_gdf["calculated"].plot()
-
-    vor_gdf = vor_gdf.drop(columns=["geometry"]).rename(
-        columns={"calculated": "geometry"}
+        vor_shapes,
+        all_gridded,
+        vor_ix,
+        existing,
+        vor_uid,
+        gridded_uid,
+        crs=full_regions.crs,
     )
 
     full_regions = pd.merge(
         full_regions,
-        vor_gdf.rename(columns={"geometry": "calculated"}),
+        vor_gdf.drop(columns="geometry"),
         left_on="UID",
         right_on="UID",
         how="left",
@@ -1943,13 +1951,9 @@ def get_voronoi_regions(full_regions):
 
     full_regions["calculated"] = full_regions["calculated"].fillna(Polygon())
 
-    full_regions.head()
-
     full_regions["combined"] = full_regions["geometry"].union(
         full_regions["calculated"]
     )
-
-    full_regions["combined"].plot(figsize=(20, 20))
 
     out = full_regions[full_regions["UID"].notnull()][["UID", "combined"]].rename(
         columns={"combined": "geometry"}
@@ -1958,8 +1962,6 @@ def get_voronoi_regions(full_regions):
 
     out["geometry"] = out["geometry"].apply(grab_polygons)
     out["geometry"] = out["geometry"].apply(strip_line_interiors)
-
-    out.plot()
 
     out = fill_in_gaps(out)
 
