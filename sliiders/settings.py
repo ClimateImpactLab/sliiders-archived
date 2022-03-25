@@ -744,6 +744,7 @@ PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
 
 DIR_GLOBAL_WEALTH_RAW = DIR_YPK_RAW / "global_wealth_databook"
 DIR_GLOBAL_WEALTH_INT = DIR_YPK_INT / "global_wealth_databook"
+DIR_CIA_RAW = DIR_YPK_RAW / "cia_wfb"
 
 DIR_EXPOSURE_BINNED = (
     DIR_EXPOSURE_INT / "asset_value" / "binned" / "global" / "historical"
