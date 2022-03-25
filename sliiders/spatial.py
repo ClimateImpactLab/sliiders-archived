@@ -111,8 +111,7 @@ def iso_poly_box_getter(iso, shp_df):
 
 
 def get_iso_geometry(iso=""):
-    """
-    Find the index in df2 of the nearest point to each element in df1
+    """Find the index in df2 of the nearest point to each element in df1
 
     Parameters
     ----------
@@ -191,9 +190,7 @@ def get_iso_geometry(iso=""):
 
 
 def filter_spatial_warnings():
-    """Suppress warnings defined in
-    `sliiders.settings.SPATIAL_WARNINGS_TO_IGNORE`
-    """
+    """Suppress warnings defined in `sliiders.settings.SPATIAL_WARNINGS_TO_IGNORE`"""
     for msg in sset.SPATIAL_WARNINGS_TO_IGNORE:
         warnings.filterwarnings("ignore", message=f".*{msg}*")
 
