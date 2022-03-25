@@ -1,5 +1,6 @@
 import random
 import warnings
+import zipfile
 from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Sequence, Union
@@ -11,8 +12,11 @@ import numpy as np
 import pandas as pd
 import pygeos
 import regionmask
+import rioxarray
 import shapely as shp
 import xarray as xr
+from dask_gateway import Gateway
+from IPython.display import display
 from numba import jit
 from scipy.spatial import SphericalVoronoi, cKDTree
 from shapely.geometry import (
@@ -107,8 +111,7 @@ def iso_poly_box_getter(iso, shp_df):
 
 
 def get_iso_geometry(iso=""):
-    """
-    Find the index in df2 of the nearest point to each element in df1
+    """Find the index in df2 of the nearest point to each element in df1
 
     Parameters
     ----------
@@ -187,9 +190,7 @@ def get_iso_geometry(iso=""):
 
 
 def filter_spatial_warnings():
-    """Suppress warnings defined in
-    `sliiders.settings.SPATIAL_WARNINGS_TO_IGNORE`
-    """
+    """Suppress warnings defined in `sliiders.settings.SPATIAL_WARNINGS_TO_IGNORE`"""
     for msg in sset.SPATIAL_WARNINGS_TO_IGNORE:
         warnings.filterwarnings("ignore", message=f".*{msg}*")
 
@@ -3178,3 +3179,110 @@ def get_granular_grid(bbox, grid_width=3601, cap=sset.ELEV_CAP):
     granular_grid = granular_grid.to_xarray().v
 
     return granular_grid
+
+
+def process_landscan(
+    landscan_zip,
+    dir_landscan_raw,
+    dir_landscan_int,
+    landscan_year,
+    save_to_file=True,
+    NWORKERS=20,
+):
+    """Convert raw LandScan Zip-file into format suitable for global `sliiders`
+    grid.
+
+    Parameters
+    ----------
+    landscan_zip : pathlib.Path
+        Path to raw Zip-file downloaded from LandScan
+
+    dir_landscan_raw : pathlib.Path
+        Path to unzipped LandScan directory containing raw files
+
+    dir_landscan_int : pathlib.Path
+        Path to directory in which to store output of this function
+
+    landscan_year : str
+        Year (i.e. version) of LandScan dataset, e.g. "2019"
+
+    save_to_file : bool
+        Whether to save the output in a file. If True, two files will be saved
+        within `dir_landscan_int`, one with `x_ix`, `y_ix`, and `population`,
+        and another with the additional fields `x` and `y` to represent
+        longitude and latitude.
+
+    NWORKERS : int
+        Number of Dask workers with which to run this function.
+
+    Returns
+    -------
+    pop_df : pandas.DataFrame
+        DataFrame of global population indexed by `x_ix`, `y_ix` coordinates
+    """
+    warnings.filterwarnings(
+        "ignore", message=f".*Reshaping is producing a large chunk*"
+    )
+
+    ### Unzipping
+    path_landscan = dir_landscan_raw / f"lspop{landscan_year}" / "hdr.adf"
+
+    if not path_landscan.exists():
+        with zipfile.ZipFile(landscan_zip, "r") as zip_ref:
+            zip_ref.extractall(dir_landscan_raw)
+
+    ### Organizing TIF to parquet
+
+    image_name = sset.DASK_IMAGE
+    gateway = Gateway()
+    cluster = gateway.new_cluster(worker_image=image_name, profile="micro")
+    client = cluster.get_client()
+    cluster.scale(NWORKERS)
+    display(cluster)
+
+    #### Open raw population raster
+
+    pop_ds = rioxarray.open_rasterio(path_landscan, chunks={"x": 2700, "y": 10440})
+    pop_ds = pop_ds.squeeze().drop("band")
+
+    # Replace null values with 0's
+    pop_ds = pop_ds.where(pop_ds >= 0, 0)
+    pop_ds = pop_ds.persist()
+
+    #### Transform to dataframe
+
+    pop_da = pop_ds.to_dataset(name="population")
+    pop_ddf = pop_da.to_dask_dataframe()
+    pop_ddf = pop_ddf.drop(columns=["spatial_ref"])
+    pop_ddf = pop_ddf.persist()
+    pop_ddf = pop_ddf[pop_ddf["population"] > 0].persist()
+
+    # Bring to local
+    pop_df = pop_ddf.compute()
+
+    #### Convert coordinates to indices
+
+    pop_df["x_ix"] = grid_val_to_ix(pop_df["x"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
+
+    pop_df["y_ix"] = grid_val_to_ix(pop_df["y"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
+
+    #### Drop unnecessary columns
+
+    pop_with_xy = pop_df.copy()
+    pop_df = pop_df.drop(columns=["x", "y"]).reset_index(drop=True)
+    pop_with_xy = pop_with_xy.reset_index(drop=True)
+
+    #### Save and shut down workers
+    if save_to_file:
+        dir_landscan_int.mkdir(exist_ok=True)
+        pop_df.to_parquet(dir_landscan_int / "population.parquet", index=False)
+        pop_with_xy.to_parquet(
+            dir_landscan_int / "population_with_xy.parquet", index=False
+        )
+
+    cluster.scale(0)
+    client.close()
+    cluster.close()
+    cluster.shutdown()
+
+    return pop_df
