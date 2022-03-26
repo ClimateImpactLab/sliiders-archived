@@ -473,20 +473,8 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
 )
 
 PATH_CIAM_SITES = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
-PATH_CIAM_SITES_WITHISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_stations_withiso_ciam.parquet"
-)
-PATH_CIAM_SITES_VORONOI_BY_ISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_point_regions_by_iso.parquet"
-)
 
 PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
-PATH_CIAM_COASTLINES_BY_ISO = _CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_iso.parquet"
-)
-PATH_CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_gtsm.parquet"
-)
 
 DIR_CIAM_VORONOI = (
     DIR_GEOGRAPHY_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
