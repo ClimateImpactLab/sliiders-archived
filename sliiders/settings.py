@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import __file__ as pkg_init_name
 from .gcs import FS, fuse_to_gcsmap
 
 # Versions
@@ -472,7 +471,7 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
     DIR_RESULTS / f"sliiders-slr-{SLIIDERS_VERS}.zarr", FS
 )
 
-PATH_CIAM_SITES = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
+PATH_SEG_CENTROIDS = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
 
 PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
 
