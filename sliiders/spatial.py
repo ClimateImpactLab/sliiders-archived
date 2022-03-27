@@ -2538,27 +2538,33 @@ def create_overlay_voronois(
         GeoDataFrame representing segment-based Voronoi regions.
     """
     # Generate global Voronoi shapes for regions
+    print("Generating global Voronoi shapes for regions...")
     reg_vor = get_voronoi_regions(regions.geometry)
     reg_vor["ISO"] = regions.ISO
     adm0 = reg_vor.dissolve("ISO")
 
-    # Assign ISO to GTSM / CIAM points based on country Voronoi
+    # Assign ISO to seg centroids based on country Voronoi
+    print("Assigning countries to segment centroids...")
     stations = seg_centroids.sjoin(adm0, how="left", predicate="within").rename(
         columns={"index_right": adm0.index.name}
     )
 
     # Generate ISO-level point-voronoi from CIAM points
+    print("Generating within-country Voronoi shapes for segment centroids...")
     vor_gdf = get_stations_by_iso_voronoi(stations)
 
     # Get coastline by country
+    print("Generating country-level coastlines...")
     coastlines_by_iso = get_coastlines_by_iso(coastlines, reg_vor, plot=plot)
 
     # Get coast-seg-by-CIAM point
+    print("Assigning segments to each centroid point...")
     coastal_segs = get_coastal_segments_by_ciam_site(
         vor_gdf, coastlines_by_iso, plot=plot
     )
 
     # Overlap coastline vor with region vor to get spatially comprehensive seg_reg.
+    print("Creating segment X region Voronoi shapes...")
     return generate_voronoi_from_segments(
         coastal_segs,
         reg_vor,
