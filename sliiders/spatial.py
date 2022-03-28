@@ -1569,8 +1569,11 @@ def get_spherical_voronoi_gser(pts_df, show_bar=True):
         input row.
     """
     # Get indices of polar Voronoi regions
-    ix_max = pts_df["y"].argmax()
-    ix_min = pts_df["y"].argmin()
+    ymax = pts_df["y"].max()
+    ymin = pts_df["y"].min()
+
+    ix_max = np.where(pts_df["y"] == ymax)[0]
+    ix_min = np.where(pts_df["y"] == ymin)[0]
 
     xyz_candidates = lon_lat_to_xyz(pts_df["x"].to_numpy(), pts_df["y"].to_numpy())
 
