@@ -22,7 +22,7 @@ EXPOSURE_BINNED_VERS = "v0.14"
 COUNTRY_LEVEL_TABLE_VERS = "v0.10"
 DATUM_CONVERSION_VERS = "v0.3"
 SLIIDERS_VERS = "v1.0"
-PWT_VERS = "20210318"
+PWT_VERS = "20220328"
 
 # Definitions
 SPATIAL_WARNINGS_TO_IGNORE = [
@@ -573,6 +573,15 @@ CTRIES_REGIONS_GWDB_2021 = [
     "World",
 ]
 
+# Region names to skip when organizing CIA WFB
+REGIONS_TO_SKIP_CIA_WFB = [
+    "Southern Ocean",
+    "Indian Ocean",
+    "Arctic Ocean",
+    "Atlantic Ocean",
+    "Pacific Ocean",
+    "Baker Island",
+]
 
 # Dask image name
 DASK_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
@@ -682,7 +691,7 @@ PATH_GADM_ADM1 = DIR_GADM / "adm1.parquet"
 PATH_GADM_ADM0_VORONOI = DIR_GADM / "adm0_voronoi.parquet"
 PATH_GADM_ADM1_VORONOI = DIR_GADM / "adm1_voronoi.parquet"
 
-PATH_PWT_RAW = DIR_EXPOSURE_RAW / "ypk" / "pwt_100.xlsx"
+PATH_PWT_RAW = DIR_EXPOSURE_RAW / "ypk" / "pwt" / PWT_VERS / "pwt_100.xlsx"
 
 PATH_EXPOSURE_BLENDED = (
     DIR_EXPOSURE_INT
