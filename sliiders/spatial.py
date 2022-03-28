@@ -855,7 +855,7 @@ def polys_to_vor_pts(regions, all_oc, tolerance=sset.DENSIFY_TOLERANCE):
 
     Returns
     -------
-    pts_df : pandas.DataFrame
+    :py:class:`geopandas.GeoSeries`
         Resulting points derived from `regions` to use as Voronoi generators
     """
     densified = pygeos.segmentize(pygeos.from_shapely(regions["geometry"]), tolerance)
@@ -869,9 +869,7 @@ def polys_to_vor_pts(regions, all_oc, tolerance=sset.DENSIFY_TOLERANCE):
         coastal_border_pts,
         coastal_coastal_gadm,
         coastal_border_gadm,
-    ) = divide_pts_into_categories(
-        pts, pt_gadm_ids, all_oc_densified, sset.DENSIFY_TOLERANCE
-    )
+    ) = divide_pts_into_categories(pts, pt_gadm_ids, all_oc_densified, tolerance)
 
     non_border, non_border_gadm, now_border, now_border_gadm = simplify_nonborder(
         coastal_coastal_pts,
@@ -1022,9 +1020,12 @@ def xyz_to_lon_lat(xyz):
         inputs
     """
     x, y, z = xyz[:, 0], xyz[:, 1], xyz[:, 2]
-    lats = np.arcsin(z)
-    lons = np.arctan2(y, x)
-    return np.stack((np.degrees(lons.flatten()), np.degrees(lats.flatten())), axis=1)
+    lats = np.degrees(np.arcsin(z).flatten())
+    lons = np.degrees(np.arctan2(y, x).flatten())
+    # ensure consistency with points exactly on meridian
+    lons = np.where(lons == -180, 180, lons)
+
+    return np.stack((lons, lats), axis=1)
 
 
 def combine_reg_group(reg_group):
@@ -1728,7 +1729,7 @@ def get_stations_by_iso_voronoi(stations):
     stations = stations.join(iso_count)
 
     lats = stations.geometry.y[stations["count"] <= 3]
-    # assert (lats.max() < 60) and (lats.min() > -60)
+    assert (lats.max() < 60) and (lats.min() > -60)
 
     # Iterate through each country, add each Voronoi gdf to `vors`
     all_isos = stations["ISO"].unique()
@@ -1873,9 +1874,9 @@ def get_voronoi_regions(full_regions):
 
     gridded_gdf, all_oc = grid_gdf(region_polys)
 
-    pts_df = polys_to_vor_pts(region_polys, all_oc)
+    pts = polys_to_vor_pts(region_polys, all_oc)
 
-    vor_gdf = get_spherical_voronoi_gser(pts_df).to_frame()
+    vor_gdf = get_spherical_voronoi_gser(pts).to_frame()
 
     vor_shapes = pygeos.from_shapely(vor_gdf["geometry"])
     all_gridded = pygeos.from_shapely(gridded_gdf["geometry"])
