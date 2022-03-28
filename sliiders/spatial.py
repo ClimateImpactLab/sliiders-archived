@@ -884,14 +884,14 @@ def polys_to_vor_pts(regions, all_oc, tolerance=sset.DENSIFY_TOLERANCE):
     vor_pts = np.concatenate([non_border, now_border, coastal_border_pts])
     vor_gadm = np.concatenate([non_border_gadm, now_border_gadm, coastal_border_gadm])
 
-    pts_df = pd.DataFrame(
-        {"x": vor_pts[:, 0], "y": vor_pts[:, 1]},
-        index=pd.Index(vor_gadm, name=regions.index.name),
+    return remove_duplicate_points(
+        gpd.GeoSeries.from_xy(
+            x=vor_pts[:, 0],
+            y=vor_pts[:, 1],
+            index=pd.Index(vor_gadm, name=regions.index.name),
+            crs=regions.crs,
+        )
     )
-
-    pts_df = remove_duplicate_points(pts_df)
-
-    return pts_df
 
 
 def get_hemisphere_shape(hemisphere):
@@ -1549,16 +1549,15 @@ def get_polys_from_cycles(
     return reg_group_polys, reg_group_loc_ids
 
 
-def get_spherical_voronoi_gser(pts_df, show_bar=True):
+def get_spherical_voronoi_gser(pts, show_bar=True):
     """From a list of points associated with IDs (which must be specified by
     ``pts_df.index``), calculate the region of a globe closest to each ID-set, and
     return a GeoSeries representing those "nearest" Polygons/MultiPolygons.
 
     Parameters
     ----------
-    pts_df : :py:class:`pandas.DataFrame`
-        DataFrame of points to be used as Voronoi generators, including `x`
-        and `y` coordinates, and a unique index.
+    pts_df : :py:class:`geopandas.GeoSeries`
+        GeoSeries of Points to be used as Voronoi generators.
 
     show_bar : bool
         Show progress bar
@@ -1569,13 +1568,14 @@ def get_spherical_voronoi_gser(pts_df, show_bar=True):
         input row.
     """
     # Get indices of polar Voronoi regions
-    ymax = pts_df["y"].max()
-    ymin = pts_df["y"].min()
+    lats = pts.y.values
+    ymax = lats.max()
+    ymin = lats.min()
 
-    ix_max = np.where(pts_df["y"] == ymax)[0]
-    ix_min = np.where(pts_df["y"] == ymin)[0]
+    ix_max = np.where(lats == ymax)[0]
+    ix_min = np.where(lats == ymin)[0]
 
-    xyz_candidates = lon_lat_to_xyz(pts_df["x"].to_numpy(), pts_df["y"].to_numpy())
+    xyz_candidates = lon_lat_to_xyz(pts.x.values, lats)
 
     sv = SphericalVoronoi(
         xyz_candidates, radius=1, threshold=SPHERICAL_VORONOI_THRESHOLD
@@ -1586,7 +1586,7 @@ def get_spherical_voronoi_gser(pts_df, show_bar=True):
     loc_ids = []
 
     loc_reg_lists = (
-        pts_df.rename_axis(index="UID")
+        pts.rename_axis(index="UID")
         .reset_index(drop=False)
         .reset_index(drop=False)
         .groupby("UID")["index"]
@@ -1634,8 +1634,8 @@ def get_spherical_voronoi_gser(pts_df, show_bar=True):
     polys = make_valid_shapely(polys)
 
     return (
-        gpd.GeoDataFrame({pts_df.index.name: loc_ids}, geometry=polys, crs="EPSG:4326")
-        .dissolve(pts_df.index.name)
+        gpd.GeoDataFrame({pts.index.name: loc_ids}, geometry=polys, crs="EPSG:4326")
+        .dissolve(pts.index.name)
         .geometry
     )
 
@@ -1647,27 +1647,25 @@ def append_extra_pts(sites):
 
     Parameters
     ----------
-    sites : pandas.DataFrame
-        DataFrame representing points, including `UID`, `x`, and `y`.
+    sites : :py:class:`geopandas.GeoSeries`
+        GeoSeries of Points.
 
     Returns
     -------
-    pandas.DataFrame
-        DataFrame representing points, including `UID`, `x`, and `y`, with
-        extra points near one of the poles included.
+    :py:class:`geopandas.GeoSeries`
+        Same as input, but with extra points near one of the poles included.
     """
-    ymax = sites["y"].max()
-    ymin = sites["y"].min()
+    ymax = sites.y.max()
+    ymin = sites.y.min()
     nsign = -1 if np.abs(ymax) > np.abs(ymin) else 1
 
-    extra_pts = pd.DataFrame(
-        {
-            "y": [90 * nsign, 89 * nsign, 89 * nsign],
-            "x": [0, 0, 180],
-        },
+    extra_pts = gpd.GeoSeries.from_xy(
+        x=[0, 0, 180],
+        y=[90 * nsign, 89 * nsign, 89 * nsign],
         index=pd.Index(
             ["placeholder1", "placeholder2", "placeholder3"], name=sites.index.name
         ),
+        crs=sites.crs,
     )
 
     return pd.concat([sites, extra_pts])
@@ -1680,7 +1678,7 @@ def get_voronoi_from_sites(sites):
     ----------
     sites : :py:class:`geopandas.GeoDataFrame`
         GeoDataFrame of sites from which to generate a Voronoi diagram. Must include
-        index, Point `geometry` field, `x` and `y` coordinates.
+        index, Point `geometry` field.
 
     Returns
     -------
@@ -1695,12 +1693,12 @@ def get_voronoi_from_sites(sites):
     else:
         if sites.shape[0] <= 3:
             sites = append_extra_pts(sites)
-        vor_gser = get_spherical_voronoi_gser(sites, show_bar=False)
+        vor_gser = get_spherical_voronoi_gser(sites.geometry, show_bar=False)
         out = gpd.GeoDataFrame(
             sites.drop(columns="geometry", errors="ignore").join(vor_gser),
             crs=sites.crs,
         )
-    return out.drop(columns=["x", "y"], errors="ignore")
+    return out
 
 
 def get_stations_by_iso_voronoi(stations):
@@ -1729,11 +1727,8 @@ def get_stations_by_iso_voronoi(stations):
     )
     stations = stations.join(iso_count)
 
-    # Rename columns for compatibility with Voronoi functions
-    stations = stations.rename(columns={"lat": "y", "lon": "x"})
-
-    lats = stations.loc[stations.count <= 3, "y"]
-    assert (lats.max() < 60) and (lats.min() > -60)
+    lats = stations.geometry.y[stations["count"] <= 3]
+    # assert (lats.max() < 60) and (lats.min() > -60)
 
     # Iterate through each country, add each Voronoi gdf to `vors`
     all_isos = stations["ISO"].unique()
@@ -1760,14 +1755,14 @@ def get_stations_by_iso_voronoi(stations):
     return vor_gdf[["ISO", "geometry"]]
 
 
-def remove_duplicate_points(pts_df):
+def remove_duplicate_points(pts, threshold=SPHERICAL_VORONOI_THRESHOLD):
     """Remove points in DataFrame that are too close to each other to be
     recognized as different in the `SphericalVoronoi` algorithm.
 
     Parameters
     ----------
-    pts_df : geopandas.GeoDataFrame or pandas.DataFrame
-        DataFrame of points including `x` and `y` coordinates.
+    pts : :py:class:`geopandas.GeoSeries`
+        GeoSeries of Points
 
     Returns
     -------
@@ -1776,9 +1771,9 @@ def remove_duplicate_points(pts_df):
         of each set of duplicates).
     """
 
-    xyz_candidates = lon_lat_to_xyz(pts_df.x.values, pts_df.y.values)
+    xyz_candidates = lon_lat_to_xyz(pts.geometry.x.values, pts.geometry.y.values)
 
-    res = cKDTree(xyz_candidates).query_pairs(SPHERICAL_VORONOI_THRESHOLD * 1.0)
+    res = cKDTree(xyz_candidates).query_pairs(threshold)
 
     first_point = np.array([p[0] for p in res])
     mask = np.ones(xyz_candidates.shape[0], dtype="bool")
@@ -1786,9 +1781,7 @@ def remove_duplicate_points(pts_df):
     if len(first_point) > 0:
         mask[first_point] = False
 
-    pts_df = pts_df[mask]
-
-    return pts_df
+    return pts[mask]
 
 
 def remove_already_attributed_land_from_vor(
@@ -2548,8 +2541,11 @@ def create_overlay_voronois(
 
     # Assign ISO to seg centroids based on country Voronoi
     print("Assigning countries to segment centroids...")
-    stations = seg_centroids.sjoin(adm0, how="left", predicate="within").rename(
-        columns={"index_right": adm0.index.name}
+    stations = (
+        seg_centroids.rename("geometry")
+        .to_frame()
+        .sjoin(adm0, how="left", predicate="within")
+        .rename(columns={"index_right": adm0.index.name})
     )
 
     # Generate ISO-level point-voronoi from CIAM points
