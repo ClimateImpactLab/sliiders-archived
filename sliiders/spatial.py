@@ -1726,7 +1726,7 @@ def get_stations_by_iso_voronoi(stations):
     iso_count = (
         stations.groupby("ISO")[["ISO"]].count().rename(columns={"ISO": "count"})
     )
-    stations = stations.join(iso_count)
+    stations = stations.join(iso_count, on="ISO")
 
     lats = stations.geometry.y[stations["count"] <= 3]
     assert (lats.max() < 60) and (lats.min() > -60)
