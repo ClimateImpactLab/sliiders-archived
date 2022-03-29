@@ -1656,20 +1656,22 @@ def append_extra_pts(sites):
     :py:class:`geopandas.GeoSeries`
         Same as input, but with extra points near one of the poles included.
     """
-    ymax = sites.y.max()
-    ymin = sites.y.min()
-    nsign = -1 if np.abs(ymax) > np.abs(ymin) else 1
+    y = sites.geometry.y
+    nsign = -1 if np.abs(y.max()) > np.abs(y.min()) else 1
 
-    extra_pts = gpd.GeoSeries.from_xy(
+    out = sites.iloc[[0, 0, 0]].copy()
+    out.index = pd.Index(
+        ["placeholder1", "placeholder2", "placeholder3"], name=sites.index.name
+    )
+
+    out["geometry"] = gpd.GeoSeries.from_xy(
         x=[0, 0, 180],
         y=[90 * nsign, 89 * nsign, 89 * nsign],
-        index=pd.Index(
-            ["placeholder1", "placeholder2", "placeholder3"], name=sites.index.name
-        ),
+        index=out.index,
         crs=sites.crs,
     )
 
-    return pd.concat([sites, extra_pts])
+    return pd.concat([sites, out])
 
 
 def get_voronoi_from_sites(sites):
@@ -1926,14 +1928,15 @@ def get_points_along_segments(segments):
 
     Parameters
     ----------
-    segments : geopandas.GeoDataFrame
-        GeoDataFrame representing segments (as (Multi)LineStrings or
-        (Multi)Polygons), with `UID` unique ID, and `ISO` fields.
+    segments : :py:class:`geopandas.GeoDataFrame`
+        Geometry column represents segments (as (Multi)LineStrings or
+        (Multi)Polygons).
 
     Returns
     -------
-    all_pts_df : geopandas.GeoDataFrame
-        GeoDataFrame of resulting endpoints and interpolated points.
+    :py:class:`geopandas.GeoDataFrame`
+        GeoDataFrame of resulting endpoints and interpolated points, with same
+        non-geometry columns as ``segments``.
     """
 
     segments = segments[~segments.geometry.type.isnull()].copy()
@@ -1955,18 +1958,11 @@ def get_points_along_segments(segments):
         pygeos.from_shapely(segments["geometry"]), return_index=True
     )
 
-    all_pts_df = pd.DataFrame(
-        {"x": pts[:, 0], "y": pts[:, 1], "ISO": segments.ISO.iloc[pts_ix].values},
-        index=segments.index[pts_ix],
-    )
-
-    all_pts_df = gpd.GeoDataFrame(
-        all_pts_df,
-        geometry=gpd.points_from_xy(all_pts_df["x"], all_pts_df["y"]),
+    return gpd.GeoDataFrame(
+        segments.drop(columns="geometry").iloc[pts_ix],
+        geometry=gpd.points_from_xy(pts[:, 0], pts[:, 1]),
         crs=segments.crs,
     )
-
-    return all_pts_df
 
 
 def constrain_lons(arr, lon_mask):
