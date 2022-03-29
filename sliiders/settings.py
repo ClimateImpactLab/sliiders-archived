@@ -550,7 +550,7 @@ DIR_ELEVATION = Path("/gcs/rhg-data/impactlab-rhg/common_data/elevation")
 DIR_ELEVATION_RAW = DIR_ELEVATION / "raw"
 DIR_ELEVATION_INT = DIR_ELEVATION / "int"
 
-PATH_SRTM15_PLUS = DIR_ELEVATION_RAW / "srtm15_plus" / "SRTM15_V2.3.nc"
+PATH_SRTM15_PLUS = DIR_ELEVATION_RAW / "srtm15_plus" / "SRTM15_V2.4.nc"
 DIR_MSS = DIR_ELEVATION_INT / "CoastalDEM_mss_corrected"
 DIR_COASTALDEM = (
     DIR_ELEVATION_RAW / "climate_central" / "coastal_dem_30as" / "CoastalDEM_Global_30m"
