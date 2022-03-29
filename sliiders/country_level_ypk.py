@@ -17,6 +17,7 @@ from .settings import (
     DIR_CIA_RAW,
     PATH_PWT_RAW,
     PPP_CCODE_IF_MSNG,
+    REGIONS_TO_SKIP_CIA_WFB,
     SCENARIOS,
     SSP_PROJ_ORG_SER,
 )
@@ -1420,7 +1421,7 @@ def organize_gwdb_2021_page(
 
 
 def helper_wfb_million_cleaner(string):
-    numeric = float(re.sub(r"[a-zA-Z]|\$| |,", "", string))
+    numeric = float(re.sub(r"[a-zA-Z]|\$| |\,|-", "", string))
     if "trillion" in string:
         numeric = numeric * 1000000
     elif "billion" in string:
@@ -1489,138 +1490,6 @@ def helper_wfb_gather_soups(directory, subdirectory="geos", print_ver=False):
     return soups
 
 
-def organize_cia_wfb_2000(directory=(DIR_CIA_RAW / "factbook-2000")):
-
-    # gathering Soup and region or country names
-    print("Gathering soups from individual files...")
-    soups = helper_wfb_gather_soups(directory)
-
-    # we gather population and GDP separately since the years when estimations are
-    # conducted are different (e.g., population in 2000 but GDP and GDPpc in 1998)
-    # population
-    print("Done. Gathering population information...")
-    pop_collect = []
-    for soup in soups:
-        name = soup.find("title").text.split(" -- ")[-1].replace("\n", "")
-
-        # finding text containing population information
-        pop_text = [
-            x
-            for x in soup.find_all("p")
-            if ("Population:" in x.text) and ("Age structure:" in x.text)
-        ]
-        if len(pop_text) == 0:
-            continue
-        pop_text = pop_text[0].text
-        pop_text = pop_text[
-            pop_text.find("Population:") : pop_text.find("Age structure:")
-        ]
-
-        # case when additional notes are included
-        if "note" in pop_text:
-            pop_info = pop_text.split(":\n")
-            pop_val = pop_info[1].split("\n")[0]
-
-            # subcase when Serbia and Montenegro are selected
-            if "Serbia" in pop_val:
-                serbia, monte = pop_val.split("; ")
-                pop_val = [serbia.split(" - ")[1], monte.split(" - ")[1][0:-1]]
-
-            pop_when_0, pop_when_1 = pop_info[-1].find("("), pop_info[-1].find(" est.)")
-            pop_when = pop_info[-1][pop_when_0:pop_when_1].split(" ")[-1]
-
-        # case if not
-        else:
-            pop_info = pop_text.split(":\n")[1].split(" (")
-            pop_val = pop_info[0]
-            pop_when = pop_info[-1].split(" est.")[0].split(" ")[-1]
-
-        if type(pop_val) is list:
-            pop_collect += [
-                ["Serbia", pop_val[0].replace(",", ""), pop_when],
-                ["Montenegro", pop_val[1].replace(",", ""), pop_when],
-            ]
-        else:
-            pop_collect.append([name, pop_val.replace(",", ""), pop_when])
-
-    pop_collect = pd.DataFrame(pop_collect, columns=["country", "pop", "year"])
-    pop_collect["wfb_year"] = 2000
-    pop_collect["pop"] = pop_collect["pop"].astype("float64")
-    pop_collect["year"] = pop_collect["year"].astype("int64")
-
-    # GDP and GDP per capita
-    print("Done. Gathering GDP and GDP per capita information...")
-    gdp_collect = []
-    for soup in soups:
-        name = soup.find("title").text.split(" -- ")[-1].replace("\n", "")
-        gdp_finder = [
-            x
-            for x in soup.find_all("p")
-            if "GDP:" in x.text and "GDP - composition by sector:" in x.text
-        ]
-        if len(gdp_finder) == 0:
-            continue
-
-        # GDP (not GDPpc) information
-        gdp_text = gdp_finder[0].text
-        gdp_text = gdp_text[
-            gdp_text.find("GDP:") : gdp_text.find("GDP - composition by sector:")
-        ]
-        gdp_info = gdp_text[0 : gdp_text.find("GDP - real growth rate:")].replace(
-            "\n", ""
-        )
-
-        # case of Cyprus
-        if "Cypriot" in gdp_info:
-            gdp_lst = gdp_info.split("purchasing power parity - $")
-            gdp_gre_c = gdp_lst[1].split(";")[0]  # Greek Cyprus
-            gdp_tur_c, gdp_when = gdp_lst[-1].split(" (")  # Turkish Cyprus
-            gdp_when = gdp_when.replace(" est.)", "")
-            gdp_val = [
-                float(gdp_gre_c.replace(" billion", "")) * 1000,
-                float(gdp_tur_c.replace(" million", "")),
-            ]
-        # other general cases
-        else:
-            gdp_val, gdp_when = helper_wfb_2000_gdp(gdp_info, False)
-
-        # GDPpc information
-        gdppc_info = gdp_text.split("GDP - per capita:\n")[-1]
-        if "Cypriot" in gdppc_info:
-            gdppc_lst = gdppc_info.split("purchasing power parity - $")
-            gdppc_gre_c = gdppc_lst[1].split(";")[0].replace(",", "")
-            gdppc_tur_c, gdppc_when = gdppc_lst[-1].split(" (")
-            gdppc_when = gdp_when.replace(" est.)", "")
-            gdppc_val = [float(gdppc_gre_c), float(gdppc_tur_c.replace(",", ""))]
-        else:
-            gdppc_val, _ = helper_wfb_2000_gdp(gdppc_info, True)
-
-        if type(gdp_val) is list:
-            pop_temp = gdp_val[0] / gdppc_val[0] + gdp_val[1] / gdppc_val[1]
-            gdp_val = np.sum(gdp_val)
-            gdppc_val = gdp_val / pop_temp
-            gdp_collect.append(["Cyprus", gdp_val, gdppc_val, int(gdp_when)])
-        else:
-            if (not pd.isnull(gdp_val)) and (not pd.isnull(gdppc_val)):
-                gdp_collect.append([name, gdp_val, gdppc_val, gdp_when])
-
-    gdp_collect = pd.DataFrame(gdp_collect, columns=["country", "gdp", "gdppc", "year"])
-    gdp_collect["wfb_year"] = 2000
-    print("Done.")
-
-    return pop_collect, gdp_collect
-
-
-def helper_wfb_2019_2020_gdp(soup):
-    name = soup.find("title").text
-    if " :: " in name:
-        name = name.split(" :: ")[1].split(" — ")[0]
-    else:
-        name = name.split(" - ")[0]
-
-    return name
-
-
 def helper_fy_cleaner(list_of_years):
     """Helper function for cleaning a list of years (in string format) that may have
     financial year designations instead of YYYY format.
@@ -1649,17 +1518,258 @@ def helper_fy_cleaner(list_of_years):
     return [int(x) for x in list_of_years]
 
 
-def organize_cia_wfb_2019_2020(
+def organize_cia_wfb_2000_2001(
+    directory=(DIR_CIA_RAW / "factbook-2001"),
+    no_info_names=REGIONS_TO_SKIP_CIA_WFB,
+    wfb_year=2001,
+):
+
+    msg = "Cleans only 2000 to 2001 versions of CIA WFB."
+    assert wfb_year in range(2000, 2002), msg
+
+    print("Gathering soups...")
+    soups = helper_wfb_gather_soups(directory)
+
+    # population
+    print("Done. Gathering population information...")
+    pop_collect = []
+    for soup in soups:
+        name = soup.find("title").text.split(" -- ")[-1].strip()
+        if name in no_info_names:
+            continue
+
+        popstr = soup.text[
+            soup.text.find("Population:") : soup.text.find("Age structure:")
+        ].replace("\n", "")
+        if ("no indigenous" in popstr) or ("uninhabited" in popstr):
+            continue
+
+        popstr = [
+            x
+            for x in re.split(r"\(|\)", re.sub(r"(Population:)|\,|(est.)", "", popstr))
+            if len(x.replace(" ", "")) > 0
+        ]
+        try:
+            pop_val, pop_year = popstr[0], popstr[1]
+        except:
+            print(name, popstr)
+            continue
+        if name in ["South Africa", "Syria"]:
+            pop_year = popstr[-1]
+
+        if "note:" in pop_val:
+            pop_val = pop_val.split("note:")[0]
+
+        pop_collect.append([name, float(pop_val.strip()), int(pop_year.strip()[-4:])])
+    pop_collect = pd.DataFrame(pop_collect, columns=["country", "pop", "year"])
+    pop_collect["wfb_year"] = wfb_year
+
+    # GDP and GDPpc
+    print("Done. Gathering GDP and GDP per capita information...")
+    gdp_collect = []
+    for soup in soups:
+        name = soup.find("title").text.split(" -- ")[-1].strip()
+        if name in no_info_names:
+            continue
+
+        # GDP
+        gdp_txt = soup.text.replace("\n", " ")
+        front_txt = "GDP: purchasing power parity"
+        if wfb_year == 2001:
+            front_txt = "GDP:  purchasing power parity"
+        if front_txt not in gdp_txt:
+            continue
+
+        gdp_txt, gdppc_txt = gdp_txt[
+            gdp_txt.find(front_txt) : gdp_txt.find("GDP - composition by sector")
+        ].split("GDP - real growth rate:")
+        gdp_txt = [
+            x.strip()
+            for x in re.split(
+                r"\(|\)", re.sub(r"({} - \$)|( est.)".format(front_txt), "", gdp_txt)
+            )
+            if len(x.strip()) > 0
+        ]
+        if gdp_txt[0] == "NA":
+            continue
+        gdp_val = helper_wfb_million_cleaner(gdp_txt[0])
+        gdp_year = helper_fy_cleaner([gdp_txt[1]])[0]
+
+        # GDPpc
+        front_txt = "GDP - per capita: purchasing power parity - "
+        if wfb_year == 2001:
+            front_txt = "GDP - per capita:  purchasing power parity - "
+        gdppc_txt = re.sub(r"\$|( est.)", "", gdppc_txt.split(front_txt)[-1]).strip()
+        additional_condition = (name in ["Svalbard", "Norway"]) and (wfb_year == 2001)
+        if (gdppc_txt == "NA") or additional_condition:
+            continue
+        gdppc_val, _ = gdppc_txt.split("(")
+        gdppc_val = float(gdppc_val.replace(",", ""))
+        # _ = helper_fy_cleaner([gdppc_year.replace(")", "")])[0]
+
+        gdp_collect.append([name, gdp_val, gdppc_val, gdp_year])
+
+    gdp_collect = pd.DataFrame(gdp_collect, columns=["country", "gdp", "gdppc", "year"])
+    gdp_collect["wfb_year"] = wfb_year
+    print("Done.\n")
+
+    return pop_collect, gdp_collect
+
+
+def organize_cia_wfb_2002_2004(
+    directory=(DIR_CIA_RAW / "factbook-2002"), wfb_year=2002
+):
+
+    s_yr, e_yr = 2002, 2004
+    msg = "Cleans only {} to {} versions of CIA WFB.".format(s_yr, e_yr)
+    assert wfb_year in range(s_yr, e_yr + 1), msg
+
+    lst_directory = Path(directory) / "fields"
+    print("Collecting soups...")
+    soups = []
+    for i in [2001, 2004, 2119]:
+        file = copen(str(lst_directory / "{}.html".format(i)), "r").read()
+        soups.append(BSoup(file, "html.parser"))
+
+    # GDP and GDP per capita
+    print("Done. Collecting GDP, GDPpc, and population information...")
+    gdp_case = True
+    for soup in soups[0:2]:
+        gdp_lst = [
+            re.sub(r"\n|\t", "", x.text)
+            for x in soup.find_all("tr")
+            if "power parity" in x.text
+        ][1:]
+        gdp_lst = [x.split("purchasing power parity - $") for x in gdp_lst]
+        if not gdp_case:
+            gdp_lst = [[x[0]] + [f.replace(",", "") for f in x[1:]] for x in gdp_lst]
+        gdp_collect = []
+        for i in gdp_lst:
+            # let us manually take care of Cyprus; skip if only containing NA
+            if ("Cyp" in i[0]) or (" - NA " in i[0]):
+                continue
+
+            gdp_val = i[1].strip().split(" (")
+            gdp_val, gdp_year = gdp_val[0], gdp_val[1:]
+            if "note" in gdp_val:
+                gdp_val = gdp_val.split("note")[0].strip()
+            elif "NA" in gdp_val:
+                continue
+
+            if gdp_case:
+                gdp_val = helper_wfb_million_cleaner(gdp_val)
+            else:
+                gdp_val = float(gdp_val.strip())
+
+            if not gdp_year:
+                gdp_year = wfb_year
+            else:
+                gdp_year = gdp_year[0].split("est.")[0].replace(")", "").strip()
+                gdp_year = helper_fy_cleaner([gdp_year])[0]
+
+            if "World" in i[0]:
+                gdp_collect.append(["World", gdp_val, gdp_year])
+            else:
+                gdp_collect.append([i[0], gdp_val, gdp_year])
+
+        if gdp_case:
+            gdp_df = gdp_collect.copy()
+            gdp_case = False
+        else:
+            gdppc_df = gdp_collect.copy()
+
+    gdppc_df = pd.DataFrame(gdppc_df, columns=["country", "gdppc", "year"])
+    gdp_df = pd.DataFrame(gdp_df, columns=["country", "gdp", "year"])
+    gdp_df["wfb_year"], gdppc_df["wfb_year"] = wfb_year, wfb_year
+
+    # Population
+    pop_df = []
+    pop_lst = [
+        re.sub(r"\n|\t", "", x.text)
+        for x in soups[-1].find_all("tr")
+        if "est.)" in x.text
+    ][1:]
+    for i in pop_lst:
+        if ("no indigenous" in i) or ("uninhabited" in i):
+            continue
+
+        pop_idx = re.search(r"[0-9]", i).span()[0]
+        name, pop_info = i[0:pop_idx], i[pop_idx:]
+        pop_val = pop_info.split("(")
+        pop_val, pop_year = pop_val[0], pop_val[-1]
+        if "note" in pop_val:
+            pop_val = pop_val.split("note")[0]
+        if "million" in pop_val:
+            pop_val = float(pop_val.strip().replace(" million", "")) * 1000000
+        else:
+            pop_val = float(pop_val.strip().replace(",", ""))
+        pop_year = int(re.sub(r"[a-zA-Z]|\.|\)", "", pop_year))
+        pop_df.append([name, pop_val, pop_year])
+
+    pop_df = pd.DataFrame(pop_df, columns=["country", "pop", "year"])
+    pop_df["wfb_year"] = wfb_year
+    print("Done.\n")
+
+    return pop_df, gdp_df, gdppc_df
+
+
+def organize_cia_wfb_2005(directory=(DIR_CIA_RAW / "factbook-2005"), wfb_year=2005):
+
+    s_yr, e_yr = 2005, 2005
+    msg = "Cleans only {} to {} versions of CIA WFB.".format(s_yr, e_yr)
+    assert wfb_year in range(s_yr, e_yr + 1), msg
+
+    lst_directory = Path(directory) / "fields"
+    print("Collecting soups...")
+    soups = []
+    for i in [2001, 2004, 2119]:
+        file = copen(str(lst_directory / "{}.html".format(i)), "r").read()
+        soups.append(BSoup(file, "html.parser"))
+
+    # GDP and GDP per capita
+    print("Done. Collecting GDP, GDPpc, and population information...")
+    for case, soup in enumerate(soups[0:1]):
+        collect = []
+        lst = [
+            re.sub(r"\n|\t", "", x.text)
+            for x in soup.find_all("tr")
+            if "est.)" in x.text
+        ][1:]
+
+        for i in lst:
+            cnd_check = ("no indigenous" in i) or ("uninhabited" in i) or ("NA" in i)
+            if ("Cyprus" in i) or cnd_check:
+                continue
+
+            searchby = r"\$"
+            if case == 2:
+                searchby = r"[0-9]"
+
+            idx = re.search(searchby, i).span()[0]
+            name, value = i[0:idx], i[idx:]
+
+            if "World" in name:
+                name = "World"
+
+            collect.append([name, value])
+
+    return soups, collect
+
+
+def helper_wfb_2018_2020_gdp(soup):
+    name = soup.find("title").text
+    if " :: " in name:
+        name = name.split(" :: ")[1].split(" — ")[0]
+    else:
+        name = name.split(" - ")[0]
+
+    return name
+
+
+def organize_cia_wfb_2018_2020(
     directory=(DIR_CIA_RAW / "factbook-2020"),
     wfb_year=2020,
-    no_info_names=[
-        "Southern Ocean",
-        "Indian Ocean",
-        "Arctic Ocean",
-        "Atlantic Ocean",
-        "Pacific Ocean",
-        "Baker Island",
-    ],
+    no_info_names=REGIONS_TO_SKIP_CIA_WFB,
 ):
     """Organizes the population, GDP, and GDP per capita information from the CIA World
     Factbook (WFB) versions 2019 and 2020 into `pandas.DataFrame` formats. Baseline
@@ -1688,7 +1798,9 @@ def organize_cia_wfb_2019_2020(
         containing PPP GDP per capita information (units in ones of USD, USD year
         designated by the column `usd_year`)
     """
-    assert wfb_year in [2019, 2020], "Cleans only 2019 or 2020 version of CIA WFB."
+
+    msg = "Cleans only 2018 to 2020 versions of CIA WFB."
+    assert wfb_year in range(2018, 2021), msg
 
     # gathering soups
     print("Gathering soups from individual files...")
@@ -1698,7 +1810,7 @@ def organize_cia_wfb_2019_2020(
     print("Done. Gathering population information...")
     pop_collect = []
     for soup in soups:
-        name = helper_wfb_2019_2020_gdp(soup)
+        name = helper_wfb_2018_2020_gdp(soup)
         if name in no_info_names:
             continue
 
@@ -1748,14 +1860,14 @@ def organize_cia_wfb_2019_2020(
     pop_collect["wfb_year"] = wfb_year
 
     gdp_str_first = "GDP (purchasing power parity) - real:"
-    if wfb_year == 2019:
+    if wfb_year != 2020:
         gdp_str_first = gdp_str_first.split(" - ")[0]
 
     # GDP and GDP per capita
     print("Done. Gathering GDP and GDP per capita information...")
     gdp_collect, gdppc_collect = [], []
     for soup in soups:
-        name = helper_wfb_2019_2020_gdp(soup)
+        name = helper_wfb_2018_2020_gdp(soup)
         if name in no_info_names + ["Gaza Strip"]:
             continue
 
@@ -1773,7 +1885,7 @@ def organize_cia_wfb_2019_2020(
             continue
 
         if len(gdp_info) > 0:
-            if (wfb_year == 2019) and (gdp_info[0] in [":", ";"]):
+            if (wfb_year != 2020) and (gdp_info[0] in [":", ";"]):
                 gdp_info = gdp_info[1:]
 
             note = None
@@ -1781,7 +1893,7 @@ def organize_cia_wfb_2019_2020(
                 gdp_info = gdp_info.split("note: ")
                 gdp_info, note = gdp_info[0], gdp_info[1:]
 
-            if (wfb_year == 2019) and ("country comparison to" in gdp_info):
+            if (wfb_year != 2020) and ("country comparison to" in gdp_info):
                 gdp_info = gdp_info.split("country comparison to")[0]
             gdp_info = [
                 x.strip() for x in re.split(r"\(|\)", gdp_info) if len(x.strip()) > 0
@@ -1804,7 +1916,7 @@ def organize_cia_wfb_2019_2020(
                     elif (";" in note) or ("-" in note):
                         note = re.split(r";|-", note)[0]
 
-                    if (":" in note) and (wfb_year == 2019):
+                    if (":" in note) and (wfb_year != 2020):
                         note = note.split(":")[0]
 
                     gdp_usd_yrs = [int(note.replace(".", ""))] * len(gdp_yrs)
