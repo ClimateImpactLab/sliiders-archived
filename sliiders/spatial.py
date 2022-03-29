@@ -1863,7 +1863,12 @@ def get_voronoi_regions(full_regions):
         full_regions = full_regions.to_frame(name="geometry")
     out_cols = [c for c in full_regions.columns if c != "geometry"]
 
-    region_polys = full_regions.explode(index_parts=False)
+    # avoiding GeoDataFrame.explode until geopandas v0.10.3 b/c of
+    # https://github.com/geopandas/geopandas/issues/2271
+    # region_polys = full_regions.explode(index_parts=False)
+    region_polys = full_regions.drop(columns="geometry").join(
+        full_regions.geometry.explode(index_parts=False)
+    )
 
     # This has been tested with XYZ coordinates so cannot guarantee performance on more
     # complex shapefiles
@@ -1933,7 +1938,12 @@ def get_points_along_segments(segments):
 
     segments = segments[~segments.geometry.type.isnull()].copy()
 
-    segments = segments.explode(index_parts=False)
+    # avoiding GeoDataFrame.explode until geopandas v0.10.3 b/c of
+    # https://github.com/geopandas/geopandas/issues/2271
+    # segments = segments.explode(index_parts=False)
+    segments = segments.drop(columns="geometry").join(
+        segments.geometry.explode(index_parts=False)
+    )
 
     segments = segments[~segments["geometry"].is_empty].copy()
 
@@ -2273,7 +2283,7 @@ def coastlen_poly(
             line = lines_int.iloc[idx0]
 
             if line.geometry.type == "MultiLineString":
-                lines = line.explode().geometry
+                lines = line.geometry.explode()
                 for idx1 in range(len(lines)):
                     line = lines.iloc[idx1]
                     lensum += line_dist(line)
