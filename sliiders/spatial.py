@@ -2358,17 +2358,17 @@ def join_coastlines_to_isos(coastlines, regions_voronoi):
         pygeos.from_shapely(coastlines), "intersects"
     )
 
-    coastal_geo = np.take(coastlines.values, coastal_ix)
-    regions_geo = np.take(regions.geometry.values, region_ix)
+    coastal_geo = coastlines.iloc[coastal_ix]
+    regions_out = regions.iloc[region_ix]
 
     joined = gpd.GeoDataFrame(
         {
-            "region_geo": gpd.GeoSeries(regions_geo, crs=coastlines.crs),
-            "ISO": regions.iloc[region_ix].ISO.values,
+            "region_geo": regions_out.geometry.values,
+            "ISO": regions_out.ISO.values,
         },
-        geometry=coastal_geo,
-        crs=coastlines.crs,
-        index=coastlines.iloc[coastal_ix].index,
+        geometry=coastal_geo.values,
+        crs=coastal_geo.crs,
+        index=coastal_geo.index,
     )
 
     return joined
