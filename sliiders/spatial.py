@@ -1744,7 +1744,9 @@ def get_stations_by_iso_voronoi(stations):
         vors.append(get_voronoi_from_sites(iso_stations))
 
     # Combine all Voronoi diagrams into one GeoDataFrame (results overlap)
-    vor_gdf = pd.concat(vors).drop(["placeholder1", "placeholder2", "placeholder3"])
+    vor_gdf = pd.concat(vors).drop(
+        ["placeholder1", "placeholder2", "placeholder3"], errors="ignore"
+    )
 
     # Check that ISOs match
     assert set(vor_gdf.index[vor_gdf["ISO"].isnull()].unique()) - set(
@@ -2608,7 +2610,9 @@ def get_country_level_voronoi_gdf(all_pts_df, segments):
         station_pts = all_pts_df[all_pts_df["ISO"] == iso].copy()
         vors.append(get_voronoi_from_sites(station_pts))
 
-    vor_gdf = pd.concat(vors).drop(["placeholder1", "placeholder2", "placeholder3"])
+    vor_gdf = pd.concat(vors).drop(
+        ["placeholder1", "placeholder2", "placeholder3"], errors="ignore"
+    )
 
     # Assign ISO to point-region shapes
     assert vor_gdf["ISO"].isnull().sum() == 0
