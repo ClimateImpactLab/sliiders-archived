@@ -78,9 +78,9 @@ To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions
       7. `5. combine_exposure_tiles.ipynb`
    8. `create-SLIIDERS-ECON.ipynb`
    
-The resulting files can be found at the paths defined in `settings.py`:
-**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`
-**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`
+The resulting files can be found at the paths defined in `settings.py`:  
+**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`  
+**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`  
 
 ## Support
 Please file an issue for any problems you encounter
