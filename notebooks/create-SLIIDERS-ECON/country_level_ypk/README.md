@@ -7,13 +7,12 @@
 This directory contains the data acquistion, clean-up, and projection notebook files to organize and project variables including GDP, GDP per capita (GDPpc), population, and capital stock for both historical (1950-2020) and future or projected (2010-2100) timelines. Many of the data sources used to generate historical and future panels have missing data, and therefore efforts were made to impute these missing data through either some form of extrapolation or other established methods. Also, efforts were made to keep the PPP and USD units consistent (e.g., constant 2019 PPP USD) across different sources having different vintages of PPP and USD units.
 
 Below is a quick summary of what each file seeks to accomplish (where the header `ypk` stands for "GDP, population, and capital stock").
-1. `ypk1_data_acquisition.ipynb`: contains code and instructions to acquire raw data for GDP, population, capital stock and other related values from various sources.
-2. `ypk2_prep_clean.ipynb`: cleans up selected raw datasets requiring more attention than others to be consistent and workable with other datasets.
-3. `ypk3_reorg_and_impute.ipynb`: reorganizes the raw and previously-cleaned historical datasets so that each variable considered has a single, consistent stream of values for each country. After this process, imputes missing GDPpc, GDP, and population values that might still be missing from the cleaned historical dataset.
-4. `ypk4_demo_ratios_historical_reg.ipynb`: contains code to clean and extrapolate demographic (age-group) ratios and create the "demographic variables" necessary to conduct the "historical regression" (According to Higgins, 1998) of finding the relationship between investment-to-GDP ratio (I/Y ratio) and demographic variables, (relative) GDPpc, and GDPpc growth rate. Furthermore, the said historical regression is conducted to acquire estimates of investment-to-GDP ratios for missing country-years.
-5. `ypk5_impute_hist_capital.ipynb`: contains code to use the historical and estimated investment-to-GDP ratios to create current-PPP investment values. These are used to replicate the initial-year capital stock estimation (country-by-country) as described in Inklaar, Woltjer, and Albarrán (2019). Also, the investment values are used in conjunction with GEG-15 and LitPop data sources to fill in missing values for the latter parts of the historical capital stock data. The end product is a filled (1950-2020) capital stock data for all relevant countries.
-6. `ypk6_projected_yp.ipynb`: contains code to clean up GDP, GDPpc, and population for the future timeline, with some basic extrapolation conducted for countries with missing projections.
-7. `ypk7_projected_capital.ipynb`: generates projections of capital stocks based on the Dellink et al. (2017) methodology.
+1. `ypk1_prep_clean.ipynb`: cleans up selected raw datasets requiring more attention than others to be consistent and workable with other datasets.
+2. `ypk2_reorg_and_impute.ipynb`: reorganizes the raw and previously-cleaned historical datasets so that each variable considered has a single, consistent stream of values for each country. After this process, imputes missing GDPpc, GDP, and population values that might still be missing from the cleaned historical dataset.
+3. `ypk3_demo_ratios_historical_reg.ipynb`: contains code to clean and extrapolate demographic (age-group) ratios and create the "demographic variables" necessary to conduct the "historical regression" (According to Higgins, 1998) of finding the relationship between investment-to-GDP ratio (I/Y ratio) and demographic variables, (relative) GDPpc, and GDPpc growth rate. Furthermore, the said historical regression is conducted to acquire estimates of investment-to-GDP ratios for missing country-years.
+4. `ypk4_impute_hist_capital.ipynb`: contains code to use the historical and estimated investment-to-GDP ratios to create current-PPP investment values. These are used to replicate the initial-year capital stock estimation (country-by-country) as described in Inklaar, Woltjer, and Albarrán (2019). Also, the investment values are used in conjunction with GEG-15 and LitPop data sources to fill in missing values for the latter parts of the historical capital stock data. The end product is a filled (1950-2020) capital stock data for all relevant countries.
+5. `ypk5_projected_yp.ipynb`: contains code to clean up GDP, GDPpc, and population for the future timeline, with some basic extrapolation conducted for countries with missing projections.
+6. `ypk6_projected_capital.ipynb`: generates projections of capital stocks based on the Dellink et al. (2017) methodology.
 
 For running these files, note that they have to be **run consecutively** (i.e., from `ypk1~` to `ypk7~`). Each notebook file contains basic descriptions on what each step does; in all cases, the cells must be run consecutively from top to bottom.
 
@@ -47,11 +46,11 @@ where the metadata (e.g., units and sources) are also attached to the respective
 
 ## 4. Regression results for imputing missing historical investment-to-GDP ratios
 
-We elaborate on the regression involving investment-to-GDP ratios mentioned in Section A3.2 in the notebook `ypk4_demo_ratios_historical_reg.ipynb`. The said notebook also contains information on how to derive each variable involved. We present the results below, where the dependent variable is investment-to-GDP ratio (denoted as $`\frac{I}{Y}`$ in the notebook).
+We elaborate on the regression involving investment-to-GDP ratios mentioned in Section A3.2 in the notebook `ypk4_demo_ratios_historical_reg.ipynb`. The said notebook also contains information on how to derive each variable involved. We present the results below, where the dependent variable is investment-to-GDP ratio (denoted as <img src="https://render.githubusercontent.com/render/math?math=\frac{I}{Y}"> in the notebook).
 
 | Variables | (1) | (2) | (3) | (4) |
 | ------ | :------: | :------: | :------: | :------: |
-| $`\hat{g}`$ | 0.405 <br/> (0.161) | 0.346<br/>(0.076) | 0.502<br/>(0.201) | 0.480<br/>(0.129) |
+| <img src="https://render.githubusercontent.com/render/math?math=\hat{g}"> | 0.405 <br/> (0.161) | 0.346<br/>(0.076) | 0.502<br/>(0.201) | 0.480<br/>(0.129) |
 | $`\hat{g}^2`$ | 0.864<br/>(0.742) | 0.515<br/>(0.611) | 0.506<br/>(0.879) | 0.493<br/>(0.915) |
 | $`\hat{yhr}`$ | -0.021<br/>(0.052) | -0.027<br/>(0.052) | 0.076<br/>(0.022) | 0.108<br/>(0.016) |
 | $`\hat{yhr}^2`$ | 0.004<br/>(0.007) | 0.003<br/>(0.006) | -0.011<br/>(0.005) | -0.015<br/>(0.005) |
