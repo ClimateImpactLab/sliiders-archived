@@ -1876,7 +1876,7 @@ def get_voronoi_regions(full_regions):
     # This has been tested with XYZ coordinates so cannot guarantee performance on more
     # complex shapefiles
     assert (
-        pygeos.count_coordinates(pygeos.from_shapely(region_polys.values))
+        pygeos.count_coordinates(pygeos.from_shapely(region_polys.geometry.values))
         < sset.MAX_VORONOI_COMPLEXITY
     )
 
