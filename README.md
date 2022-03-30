@@ -47,7 +47,7 @@ To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions
    3. `generate-projected-lsl.ipynb`
    4. `retrieve-num-gcms.ipynb`
    5. `process-localizesl-output.ipynb`
-2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**, a dataset containing socioeconomic variables by coastal segment, elevation, Shared Socioeconomic Pathway scenario. Note that this workflow uses the SLIIDERS-SLR dataset to find nearest grid cells to match to coastal segments.
+2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**, a dataset containing socioeconomic variables by coastal segment, elevation, Shared Socioeconomic Pathway scenario. Note that this workflow uses the **SLIIDERS-SLR** dataset to find nearest grid cells to match to coastal segments.
    1. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
       1. `ypk1_data_acquisition.ipynb`
       2. `ypk2_prep_clean.ipynb`
@@ -77,6 +77,10 @@ To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions
       6. `4. generate_exposure_tiles.ipynb`
       7. `5. combine_exposure_tiles.ipynb`
    8. `create-SLIIDERS-ECON.ipynb`
+   
+The resulting files can be found at the paths defined in `settings.py`:
+**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`
+**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`
 
 ## Support
 Please file an issue for any problems you encounter
