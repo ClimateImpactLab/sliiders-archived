@@ -26,7 +26,7 @@ We describe below some key variables produced by the above process. Note that ou
 - `cn_19`: Current PPP capital stock in millions of 2019 USD
 - `rnna_19`: Capital stock in millions of constant PPP 2019 USD
 - `pop`: Population in millions of people
-- `k_movable_ratio`: ratio movable capital out of total physical capital (values in $`[0, 1]`$)
+- `k_movable_ratio`: ratio movable capital out of total physical capital (values in <img src="https://render.githubusercontent.com/render/math?math=[0, 1]">)
 - `iy_ratio`: Investment-to-GDP ratio
 - `delta`: Physical capital depreciation rate
 
@@ -51,17 +51,17 @@ We elaborate on the regression involving investment-to-GDP ratios mentioned in S
 | Variables | (1) | (2) | (3) | (4) |
 | ------ | :------: | :------: | :------: | :------: |
 | <img src="https://render.githubusercontent.com/render/math?math=\hat{g}"> | 0.405 <br/> (0.161) | 0.346<br/>(0.076) | 0.502<br/>(0.201) | 0.480<br/>(0.129) |
-| $`\hat{g}^2`$ | 0.864<br/>(0.742) | 0.515<br/>(0.611) | 0.506<br/>(0.879) | 0.493<br/>(0.915) |
-| $`\hat{yhr}`$ | -0.021<br/>(0.052) | -0.027<br/>(0.052) | 0.076<br/>(0.022) | 0.108<br/>(0.016) |
-| $`\hat{yhr}^2`$ | 0.004<br/>(0.007) | 0.003<br/>(0.006) | -0.011<br/>(0.005) | -0.015<br/>(0.005) |
-| $`{D_1}`$ | 0.184<br/>(0.186) |  | 0.348<br/>(0.190) |  |
-| $`{D_2}`$ | -0.008<br/>(0.035) |  | -0.038<br/>(0.030) |  |
-| $`{D_3}`$ | -0.000<br/>(0.002) |  | 0.001<br/>(0.001) |  |
-| $`D_1\times \hat{g}`$ | 3.988<br/>(3.149) |  | 1.784<br/>(3.945) |  |
-| $`D_2\times \hat{g}`$ | -0.797<br/>(0.570) |  | -0.465<br/>(0.597) |  |
-| $`D_3\times \hat{g}`$ | 0.040<br/>(0.028) |  | 0.026<br/>(0.026) |  |
-| $`N`$ | 11145 | 11145 | 11145 | 11145 |
+| <img src="https://render.githubusercontent.com/render/math?math=\hat{g}^2"> | 0.864<br/>(0.742) | 0.515<br/>(0.611) | 0.506<br/>(0.879) | 0.493<br/>(0.915) |
+| <img src="https://render.githubusercontent.com/render/math?math=\hat{yhr}"> | -0.021<br/>(0.052) | -0.027<br/>(0.052) | 0.076<br/>(0.022) | 0.108<br/>(0.016) |
+| <img src="https://render.githubusercontent.com/render/math?math=\hat{yhr}^2"> | 0.004<br/>(0.007) | 0.003<br/>(0.006) | -0.011<br/>(0.005) | -0.015<br/>(0.005) |
+| <img src="https://render.githubusercontent.com/render/math?math=D_1"> | 0.184<br/>(0.186) |  | 0.348<br/>(0.190) |  |
+| <img src="https://render.githubusercontent.com/render/math?math=D_2"> | -0.008<br/>(0.035) |  | -0.038<br/>(0.030) |  |
+| <img src="https://render.githubusercontent.com/render/math?math=D_3"> | -0.000<br/>(0.002) |  | 0.001<br/>(0.001) |  |
+| <img src="https://render.githubusercontent.com/render/math?math=D_1\times\hat{g}"> | 3.988<br/>(3.149) |  | 1.784<br/>(3.945) |  |
+| <img src="https://render.githubusercontent.com/render/math?math=D_2\times\hat{g}"> | -0.797<br/>(0.570) |  | -0.465<br/>(0.597) |  |
+| <img src="https://render.githubusercontent.com/render/math?math=D_3\times\hat{g}"> | 0.040<br/>(0.028) |  | 0.026<br/>(0.026) |  |
+|  <img src="https://render.githubusercontent.com/render/math?math=N">  | 11145 | 11145 | 11145 | 11145 |
 | Country fixed effects | Yes | Yes | No | No |
-| Adjusted $`R^2`$ | 0.325 | 0.315 | 0.068 | 0.054 |
+| Adjusted  <img src="https://render.githubusercontent.com/render/math?math=R^2">  | 0.325 | 0.315 | 0.068 | 0.054 |
 | AIC | -12712 | -12557 | -9317 | -9157 |
 | BIC | -11153 | -11042 | -9236 | -9120 |
