@@ -111,13 +111,16 @@ def iso_poly_box_getter(iso, shp_df):
 
 
 def get_iso_geometry(iso=""):
-    """Find the index in df2 of the nearest point to each element in df1
+    """For a given list of ISO 3166-1 alpha-3 codes (or a single code), returns
+    corresponding Natural Earth shapefile geometries. Note that some ISO codes are
+    recorded differently under Natural Earth (e.g., Aland Island is originally `ALA`
+    but recorded as `ALD`), so such cases are fixed when encountered.
 
     Parameters
     ----------
     iso : str or list of str
-        three-letter code, or list of three-letter codes, referencing a
-        geographic region in the natural earth shapefiles
+        three-letter ISO 3166-1 alpha-3 code, or list of such codes, referencing a
+        geographic region in the Natural Earth shapefiles
 
     Returns
     -------
