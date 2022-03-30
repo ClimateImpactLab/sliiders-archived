@@ -42,11 +42,11 @@ All filepaths and settings for the notebooks can be found within `settings.py`. 
 To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in subdirectories under `notebooks` to learn about how to execute the workflows. The list and order of notebooks to run is reproduced in full here. Click on the `docs` link to navigate to the relevant directory for more information on each workflow.
 
 1. `create-SLIIDERS-SLR` ([docs](notebooks/create-SLIIDERS-SLR)): Workflow to generate **SLIIDERS-SLR**, a dataset of gridded local sea-level Monte Carlo samples for each RCP scenario, year (decadal), and site ID (defined by LocalizeSL).
-  i. `download-ifile-to-gcs.ipynb`
-  ii. `convert-mat-version.ipynb`
-  iii. `generate-projected-lsl.ipynb`
-  iv. `retrieve-num-gcms.ipynb`
-  v. `process-localizesl-output.ipynb`
+   1. `download-ifile-to-gcs.ipynb`
+   2. `convert-mat-version.ipynb`
+   3. `generate-projected-lsl.ipynb`
+   4. `retrieve-num-gcms.ipynb`
+   5. `process-localizesl-output.ipynb`
 2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**, a dataset containing socioeconomic variables by coastal segment, elevation, Shared Socioeconomic Pathway scenario. Note that this workflow uses the SLIIDERS-SLR dataset to find nearest grid cells to match to coastal segments.
   1. `download-sliiders-econ-input-data.ipynb`
   2. `create-coastline-segments.ipynb`
