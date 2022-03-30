@@ -61,8 +61,8 @@ The list and order of notebooks to run is reproduced in full here, along with an
    2. `download-sliiders-econ-input-data.ipynb`
    3. Manually isolate the 10 km-spaced coastline points included in the CoDEC dataset from the 50 km-spaced points, and save these as `gtsm_stations_eur_tothin.shp` in the defined in `settings.py` as `DIR_CIAM_SHAPEFILES`.
    4. `create-coastline-segments.ipynb`
-   5. Obtain [CoastalDEM v1.1](https://go.climatecentral.org/coastaldem/). Save `.tif` files directly in the directory defined in `settings.py` as `DIR_COASTALDEM`.
-   6. Adjust datum of CoastalDEM, using a global Mean Dynamic Ocean Topography dataset to convert CoastalDEM to the Mean Sea Surface (MSS 2000) datum.
+   5. Download [CoastalDEM v1.1](https://go.climatecentral.org/coastaldem/). Save `.tif` files directly in the directory defined in `settings.py` as `DIR_COASTALDEM`.
+   6. Download the [Mean Dynamic Topography](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/mdt/mdt-global-cnes-cls18.html) (MDT) and [xgm2019E](https://dataservices.gfz-potsdam.de/icgem/showshort.php?id=escidoc:4529896) datasets, and save both as variables in the `.zarr` file defined in `settings.py` as `PATH_GEOG_DATUMS_GRID`. A data access request may be necessary to acquire the MDT dataset.
    7. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
       1. `nearest_regions` ([docs](notebooks/create-SLIIDERS-ECON/exposure/nearest_regions)): Generate globally comprehensive map of regions delineating the combination of closest GADM adm1 regions and CIAM segments.
          1. `0a. filter-adm1.ipynb`
