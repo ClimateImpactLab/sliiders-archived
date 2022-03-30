@@ -22,7 +22,16 @@ EXPOSURE_BINNED_VERS = "v0.14"
 COUNTRY_LEVEL_TABLE_VERS = "v0.10"
 DATUM_CONVERSION_VERS = "v0.3"
 SLIIDERS_VERS = "v1.0"
-PWT_VERS = "20210318"
+PWT_DATESTAMP = "20220328"
+MPD_DATESTAMP = "20220329"
+WB_WDI_DATESTAMP = "20220329"
+ALAND_STATISTICS_DATESTAMP = "20220329"
+GWDB_DATESTAMP = "20220321"
+OECD_DATESTAMP = "20220329"
+UN_AMA_DATESTAMP = "20220329"
+IMF_WEO_VERS = "October_2021"
+UN_WPP_VERS = "2019"
+IIASA_PROJECTIONS_DOWNLOAD_VERS = "2018"
 
 # Definitions
 SPATIAL_WARNINGS_TO_IGNORE = [
@@ -502,8 +511,6 @@ PATH_GADM_ADM1 = DIR_GADM / "adm1.parquet"
 PATH_GADM_ADM0_VORONOI = DIR_GADM / "adm0_voronoi.parquet"
 PATH_GADM_ADM1_VORONOI = DIR_GADM / "adm1_voronoi.parquet"
 
-PATH_PWT_RAW = DIR_EXPOSURE_RAW / "ypk" / "pwt_100.xlsx"
-
 PATH_EXPOSURE_BLENDED = (
     DIR_EXPOSURE_INT
     / "asset_value"
@@ -553,15 +560,6 @@ DIR_LANDSCAN_RAW = DIR_EXPOSURE_RAW / "landscan"
 DIR_LANDSCAN_INT = DIR_EXPOSURE_INT / "landscan" / f"ls{LANDSCAN_YEAR}"
 PATH_LANDSCAN_INT = DIR_LANDSCAN_INT / "population.parquet"
 
-## Paths and directories specific for the country-level process
-DIR_YPK_INT = DIR_EXPOSURE_INT / "ypk"
-DIR_YPK_FINAL = DIR_YPK_INT / "finalized"
-DIR_YPK_RAW = DIR_EXPOSURE_RAW / "ypk"
-PATH_COUNTRY_LEVEL_EXPOSURE = DIR_YPK_FINAL / "gdp_gdppc_pop_capital_1950_2020.parquet"
-PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
-    DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
-)
-
 DIR_EXPOSURE_BINNED = (
     DIR_EXPOSURE_INT / "asset_value" / "binned" / "global" / "historical"
 )
@@ -605,3 +603,28 @@ PATH_GTSM_SURGE = (
 DIR_CCI_RAW = DIR_DATA_RAW / "cci"
 PATH_EXPOSURE_WB_ICP = DIR_CCI_RAW / "world_bank_ICP_2017.csv"
 PATH_EXPOSURE_LINCKE = DIR_CCI_RAW / "lincke_2021_country_input.csv"
+
+# Various directories and paths for the country-level ("YPK") workflow
+DIR_YPK_INT = DIR_EXPOSURE_INT / "ypk"
+DIR_YPK_FINAL = DIR_YPK_INT / "finalized"
+DIR_YPK_RAW = DIR_EXPOSURE_RAW / "ypk"
+PATH_COUNTRY_LEVEL_EXPOSURE = DIR_YPK_FINAL / "gdp_gdppc_pop_capital_1950_2020.parquet"
+PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
+    DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
+)
+
+DIR_CIA_RAW = DIR_YPK_RAW / "cia_wfb"
+DIR_UN_AMA_RAW = DIR_YPK_RAW / "un_ama" / UN_AMA_DATESTAMP
+DIR_UN_WPP_RAW = DIR_YPK_RAW / "un_wpp" / UN_WPP_VERS
+DIR_WB_WDI_RAW = DIR_YPK_RAW / "wb_wdi" / WB_WDI_DATESTAMP
+DIR_OECD_REGIONS_RAW = DIR_YPK_RAW / "oecd_regions" / OECD_DATESTAMP
+DIR_IIASA_PROJECTIONS = (
+    DIR_YPK_RAW / "iiasa_projections" / IIASA_PROJECTIONS_DOWNLOAD_VERS
+)
+DIR_ALAND_STATISTICS_RAW = DIR_YPK_RAW / "asub" / ALAND_STATISTICS_DATESTAMP
+PATH_GWDB2021_RAW = (
+    DIR_YPK_RAW / "gwdb" / GWDB_DATESTAMP / "global-wealth-databook-2021.pdf"
+)
+PATH_PWT_RAW = DIR_YPK_RAW / "pwt" / PWT_DATESTAMP / "pwt_100.xlsx"
+PATH_IMF_WEO_RAW = DIR_YPK_RAW / "imf_weo" / IMF_WEO_VERS / "WEO_iy_ratio_pop_gdp.xlsx"
+PATH_MPD_RAW = DIR_YPK_RAW / "mpd" / MPD_DATESTAMP / "maddison_project.xlsx"
