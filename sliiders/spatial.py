@@ -3286,3 +3286,14 @@ def process_landscan(
     cluster.shutdown()
 
     return pop_df
+
+
+def interpolate_da_like(da_in, da_out):
+    xx, yy = np.meshgrid(da_out.lon.values, da_out.lat.values)
+    interpolator = Grid2D(da_in, geodetic=True)
+    interp_out = interpolator.bicubic(coords={"lon": xx.flatten(), "lat": yy.flatten()})
+    return xr.DataArray(
+        interp_out.reshape(len(da_out.lat), len(da_out.lon)),
+        dims=["lat", "lon"],
+        coords=dict(da_out.coords),
+    )
