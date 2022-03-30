@@ -1924,7 +1924,7 @@ def get_voronoi_regions(full_regions):
     return gpd.GeoDataFrame(full_regions[out_cols].join(out, how="right"))
 
 
-def get_points_along_segments(segments):
+def get_points_along_segments(segments, tolerance=sset.DENSIFY_TOLERANCE):
     """Get a set of points along line segments. Calls `pygeos.segmentize()`
     to interpolate between endpoints of each line segment.
 
@@ -1953,7 +1953,7 @@ def get_points_along_segments(segments):
     segments = segments[~segments["geometry"].is_empty].copy()
 
     segments["geometry"] = pygeos.segmentize(
-        pygeos.from_shapely(segments["geometry"]), sset.DENSIFY_TOLERANCE
+        pygeos.from_shapely(segments["geometry"]), tolerance
     )
 
     pts, pts_ix = pygeos.get_coordinates(
@@ -2580,24 +2580,20 @@ def create_overlay_voronois(
     )
 
 
-def get_country_level_voronoi_gdf(all_pts_df, segments):
+def get_country_level_voronoi_gdf(all_pts_df):
     """Get Voronoi diagram within a country based on a set of points derived
     from that country's coastal segments.
 
     Parameters
     ----------
-    all_pts_df : pandas.DataFrame or geopandas.GeoDataFrame
-        DataFrame of Voronoi-generator points within a country, including
-        `UID`, `x`, and `y` fields.
-
-    segments : pandas.DataFrame or geopandas.GeoDataFrame
-        DataFrame of segments from which `UID` in `all_pts_df` is derived.
-        Must also include `ISO` field.
+    all_pts_df : :py:class:`geopandas.GeoDataFrame`
+        Voronoi-generator points within a country, containing `ISO` and `geometry`
+        columns.
 
     Returns
     -------
-    vor_gdf : geopandas.GeoDataFrame
-        GeoDataFrame representing Voronoi regions at the level of `station_id`
+    vor_gdf : :py:class:`geopandas.GeoDataFrame`
+        GeoDataFrame representing Voronoi regions for each input point
     """
 
     all_isos = all_pts_df["ISO"].unique()
@@ -2622,13 +2618,13 @@ def get_country_level_voronoi_gdf(all_pts_df, segments):
 
 
 def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
-    """Get global Voronoi diagram based on a set of CIAM coastal segments and
+    """Get global Voronoi diagram based on a set of coastal segments and
     administrative regions.
 
     Parameters
     ----------
     segments : :py:class:`geopandas.GeoDataFrame`
-        GeoDataFrame of CIAM segments
+        Coastal segments, including `ISO` column.
 
     region_gdf : :py:class:`geopandas.GeoDataFrame`
         GeoDataFrame representing administrative Voronoi regions
@@ -2650,17 +2646,19 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
 
     all_pts_df = get_points_along_segments(segments)
 
-    vor_gdf = get_country_level_voronoi_gdf(all_pts_df, segments)
+    vor_gdf = get_country_level_voronoi_gdf(all_pts_df)
 
-    ### Calculate Voronoi diagram of all coastal segments, independent of ISO
-    all_stations_vor = get_voronoi_from_sites(all_pts_df).dissolve(
+    # Calculate Voronoi diagram of all coastal segments, independent of ISO
+    all_stations_vor = get_voronoi_from_sites(all_pts_df.drop(columns="ISO")).dissolve(
         all_pts_df.index.name
     )
 
-    ### Join ISO-level Voronoi diagrams with country shapes to get final CIAM polygons
+    # Join ISO-level Voronoi diagrams with country shapes to get final seg-region
+    # polygons
 
     coastal_isos = vor_gdf["ISO"].unique()
     coastal_isos.sort()
+    landlocked_isos = sorted(list(set(region_gdf["ISO"].unique()) - set(coastal_isos)))
 
     coastal_overlays = []
 
@@ -2680,8 +2678,6 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
         )
 
     coastal_overlays = pd.concat(coastal_overlays, ignore_index=True)
-
-    landlocked_isos = sorted(list(set(region_gdf["ISO"].unique()) - set(coastal_isos)))
 
     landlocked_overlays = []
     for iso in tqdm(landlocked_isos):
