@@ -485,7 +485,6 @@ PATH_CIAM_ADM1_VORONOI_INTERSECTIONS = (
 PATH_CIAM_ADM1_VORONOI_INTERSECTIONS_SHP = (
     DIR_CIAM_VORONOI / "ciam_and_adm1_intersections.shp"
 )
-PATH_CIAM_POLYS = DIR_CIAM_VORONOI / "ciam_polys.parquet"
 
 DIR_SHAPEFILES = Path("/gcs/rhg-data/impactlab-rhg/spatial/shapefiles/source")
 

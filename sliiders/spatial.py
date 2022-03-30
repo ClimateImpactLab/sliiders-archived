@@ -2712,15 +2712,7 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
         + all_overlays[region_gdf.index.name].astype(str)
     )
 
-    ciam_polys = all_overlays.dissolve(segments.index.name, as_index=False).drop(
-        columns=[region_gdf.index.name, overlay_name]
-    )
-
-    ciam_polys["geometry"] = ciam_polys["geometry"].apply(strip_line_interiors)
-
-    assert ciam_polys.is_valid.all()
-
-    return all_overlays, ciam_polys
+    return all_overlays
 
 
 def get_degree_box(row):
