@@ -2262,7 +2262,7 @@ def coastlen_poly(
     # Intersect polygon with coastlines
     if not clines.intersects(poly.iloc[0].loc["geometry"]).any():
         return 0
-    lines_int = gpd.overlay(clines, poly, how="intersection")
+    lines_int = gpd.overlay(clines, poly, how="intersection", keep_geom_type=True)
     if len(lines_int) > 0:
         for idx0 in range(len(lines_int)):
 
@@ -2673,7 +2673,9 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
 
         coastal_overlays.append(
             gpd.overlay(
-                ciam_iso.reset_index(), region_iso.reset_index().drop(columns=["ISO"])
+                ciam_iso.reset_index(),
+                region_iso.reset_index().drop(columns=["ISO"]),
+                keep_geom_type=True,
             )
         )
 
@@ -2688,7 +2690,11 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
         region_iso = region_gdf[region_gdf["ISO"] == iso].copy()
 
         landlocked_overlays.append(
-            gpd.overlay(all_stations_vor.reset_index(), region_iso.reset_index())
+            gpd.overlay(
+                all_stations_vor.reset_index(),
+                region_iso.reset_index(),
+                keep_geom_type=True,
+            )
         )
 
     if len(landlocked_overlays):
