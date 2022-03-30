@@ -1,6 +1,6 @@
 # Workflow for organizing and projecting GDP (`Y`), population (`P`), capital stock (`K`), and related variables for historical (1950-2020) and future (2010-2100) timelines
 
-**This version: last updated on February 4, 2022**
+**This version: last updated on March 30, 2022**
 
 ## 1. Overview
 
