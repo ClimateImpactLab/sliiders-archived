@@ -39,15 +39,16 @@ All filepaths and settings for the notebooks can be found within `settings.py`. 
 
 ## Generating SLIIDERS-ECON and SLIIDERS-SLR
 
-To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in subdirectories under `notebooks` to learn about how to execute the workflows. The list and order of notebooks to run is reproduced in full here, along with any necessary manual steps. Click on the `docs` link to navigate to the relevant directory for more information on each workflow.
+To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in the subdirectories within `notebooks` to learn about how to execute the workflows.  
+The list and order of notebooks to run is reproduced in full here, along with any necessary manual steps. Click the `docs` link for each workflow to navigate to the relevant directory's page.
 
-1. `create-SLIIDERS-SLR` ([docs](notebooks/create-SLIIDERS-SLR)): Workflow to generate **SLIIDERS-SLR**, a dataset of gridded local sea-level Monte Carlo samples for each RCP scenario, year (decadal), and site ID (defined by LocalizeSL).
+1. `create-SLIIDERS-SLR` ([docs](notebooks/create-SLIIDERS-SLR)): Workflow to generate **SLIIDERS-SLR**
    1. `download-ifile-to-gcs.ipynb`
    2. `convert-mat-version.ipynb`
    3. `generate-projected-lsl.ipynb`
    4. `retrieve-num-gcms.ipynb`
    5. `process-localizesl-output.ipynb`
-2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**, a dataset containing socioeconomic variables by coastal segment, elevation, Shared Socioeconomic Pathway scenario. Note that this workflow uses the **SLIIDERS-SLR** dataset to find nearest grid cells to match to coastal segments.
+2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**
    1. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
       1. `ypk1_data_acquisition.ipynb`
       2. `ypk2_prep_clean.ipynb`
@@ -78,12 +79,12 @@ To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions
       7. `5. combine_exposure_tiles.ipynb`
    8. `create-SLIIDERS-ECON.ipynb`
    
-The resulting files can be found at the paths defined in `settings.py`:  
+The resulting datasets can be found at the paths defined in `settings.py`:  
 **SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`  
 **SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`  
 
 ## Support
-Please file an issue for any problems you encounter
+Please file an issue for any problems you encounter.
 
 ## Contributing
 We encourage community contributions. At the moment, we have no contribution template. Please fork the project and file a Merge Request to propose your addition. Clearly define the contribution that the Merge Request is making and, when any issues have been resolved, we will merge the new code.
