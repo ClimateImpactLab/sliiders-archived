@@ -48,32 +48,32 @@ To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions
    4. `retrieve-num-gcms.ipynb`
    5. `process-localizesl-output.ipynb`
 2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**, a dataset containing socioeconomic variables by coastal segment, elevation, Shared Socioeconomic Pathway scenario. Note that this workflow uses the SLIIDERS-SLR dataset to find nearest grid cells to match to coastal segments.
-  1. `download-sliiders-econ-input-data.ipynb`
-  2. `create-coastline-segments.ipynb`
-  3. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
-    1. `ypk1_data_acquisition.ipynb`
-    2. `ypk2_prep_clean.ipynb`
-    3. `ypk3_reorg_and_impute_ypk.ipynb`
-    4. `ypk4_demo_ratios_historical_reg.ipynb`
-    5. `ypk5_impute_hist_capital.ipynb`
-    6. `ypk6_projected_yp.ipynb`
-    7. `ypk7_projected_capital.ipynb`
-  4. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
-    1. `nearest_regions` ([docs](notebooks/create-SLIIDERS-ECON/exposure/nearest_regions)): Generate globally comprehensive map of regions delineating the combination of closest GADM adm1 regions and CIAM segments.
-      1. `0a. filter-adm1.ipynb`
-      2. `0b. voronoi-adm1.ipynb`
-      3. `1a. assign-isos-to-points.ipynb`
-      4. `1b. generate-country-level-point-voronoi.ipynb`
-      5. `1c. get-coastlines-by-country.ipynb`
-      6. `1d. get-coastseg-by-gtsm-point.ipynb`
-      7. `2. generate-voronoi-from-gtsm-segments.ipynb`
-    2. `0. fill_missing_litpop_with_geg.ipynb`
-    3. `1. vectorize-wetlands.ipynb`
-    4. `2. get_positive_elev_tiles.ipynb`
-    5. `3. create_dem_mss.ipynb`
-    6. `4. generate_exposure_tiles.ipynb`
-    7. `5. combine_exposure_tiles.ipynb`
-  5. `create-SLIIDERS-ECON.ipynb`
+   1. `download-sliiders-econ-input-data.ipynb`
+   2. `create-coastline-segments.ipynb`
+   3. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
+      1. `ypk1_data_acquisition.ipynb`
+      2. `ypk2_prep_clean.ipynb`
+      3. `ypk3_reorg_and_impute_ypk.ipynb`
+      4. `ypk4_demo_ratios_historical_reg.ipynb`
+      5. `ypk5_impute_hist_capital.ipynb`
+      6. `ypk6_projected_yp.ipynb`
+      7. `ypk7_projected_capital.ipynb`
+   4. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
+      1. `nearest_regions` ([docs](notebooks/create-SLIIDERS-ECON/exposure/nearest_regions)): Generate globally comprehensive map of regions delineating the combination of closest GADM adm1 regions and CIAM segments.
+         1. `0a. filter-adm1.ipynb`
+         2. `0b. voronoi-adm1.ipynb`
+         3. `1a. assign-isos-to-points.ipynb`
+         4. `1b. generate-country-level-point-voronoi.ipynb`
+         5. `1c. get-coastlines-by-country.ipynb`
+         6. `1d. get-coastseg-by-gtsm-point.ipynb`
+         7. `2. generate-voronoi-from-gtsm-segments.ipynb`
+      2. `0. fill_missing_litpop_with_geg.ipynb`
+      3. `1. vectorize-wetlands.ipynb`
+      4. `2. get_positive_elev_tiles.ipynb`
+      5. `3. create_dem_mss.ipynb`
+      6. `4. generate_exposure_tiles.ipynb`
+      7. `5. combine_exposure_tiles.ipynb`
+   5. `create-SLIIDERS-ECON.ipynb`
 
 ## Support
 Please file an issue for any problems you encounter
