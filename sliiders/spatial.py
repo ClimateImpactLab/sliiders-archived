@@ -1855,16 +1855,15 @@ def get_voronoi_regions(full_regions):
 
     Parameters
     ----------
-    full_regions : :py:class:`geopandas.GeoSeries`
+    full_regions : :py:class:`geopandas.GeoDataFrame`
+        Contains regions for which you want to create Voronoi shapes
 
     Returns
     -------
-    out : :py:class:`geopandas.GeoSeries`
-        A GeoSeries where each geometry is the shape containing all points that are
-        closest to the original geometry.
+    out : :py:class:`geopandas.GeoDataFrame`
+        Same as input but with the geometry defined as the Voronoi shapes.
     """
-    if isinstance(full_regions, gpd.GeoSeries):
-        full_regions = full_regions.to_frame(name="geometry")
+
     out_cols = [c for c in full_regions.columns if c != "geometry"]
 
     # avoiding GeoDataFrame.explode until geopandas v0.10.3 b/c of
@@ -2544,7 +2543,7 @@ def create_overlay_voronois(
     """
     # Generate global Voronoi shapes for regions
     print("Generating global Voronoi shapes for regions...")
-    reg_vor = get_voronoi_regions(regions.geometry)
+    reg_vor = get_voronoi_regions(regions)
     reg_vor["ISO"] = regions.ISO
     adm0 = reg_vor.dissolve("ISO")
 
