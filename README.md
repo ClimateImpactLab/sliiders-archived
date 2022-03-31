@@ -37,7 +37,7 @@ All filepaths and settings for the notebooks can be found within `settings.py`. 
 
 * `notebooks`: contains the workflows to create SLIIDERS-ECON and SLIIDERS-SLR.
 
-## Generating SLIIDERS-ECON and SLIIDERS-SLR
+## Instructions (Generating SLIIDERS-ECON and SLIIDERS-SLR)
 
 To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in the subdirectories within `notebooks` to learn about how to execute the workflows.  
 \
