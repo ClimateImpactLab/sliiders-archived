@@ -801,27 +801,27 @@ def simplify_nonborder(
     return non_border, non_border_gadm, now_border, now_border_gadm
 
 
-def explode_gdf_to_pts(geo_array, id_array):
+def explode_gdf_to_pts(geo_array, id_array, rounding_decimals=sset.ROUND_INPUT_POINTS):
     """Transform an array of shapes into an array of coordinate pairs, keeping
     the IDs of shapes aligned with the coordinates.
 
     Parameters
     ----------
-    geo_array : pygeos.Geometry
-        Array of pygeos geometries
+    geo_array : :py:class:`numpy.ndarray`
+        Array of ``pygeos`` geometries
 
-    id_array : np.ndarray
+    id_array : :py:class:`numpy.ndarray`
         List of IDs corresponding to shapes in `geo_array`
 
     Returns
     -------
     pts : np.ndarray
         2D array of longitude-latitude pairs representing all points, rounded
-        to `sliiders.settings.ROUND_INPUT_POINTS` precision, represented in the
-        geometries of `geo_array`.
+        to ``sliiders.settings.ROUND_INPUT_POINTS`` precision, represented in the
+        geometries of ``geo_array``.
 
     pt_ids : np.ndarray
-        1D array of IDs corresponding to `pts`.
+        1D array of IDs corresponding to ``pts``.
     """
     counts = np.array([pygeos.count_coordinates(poly) for poly in geo_array])
 
@@ -829,9 +829,7 @@ def explode_gdf_to_pts(geo_array, id_array):
 
     pts = pygeos.get_coordinates(geo_array)
 
-    pts, pts_ix = np.unique(
-        np.round(pts, sset.ROUND_INPUT_POINTS), axis=0, return_index=True
-    )
+    pts, pts_ix = np.unique(np.round(pts, rounding_decimals), axis=0, return_index=True)
     pt_ids = pt_ids[pts_ix]
 
     return pts, pt_ids
