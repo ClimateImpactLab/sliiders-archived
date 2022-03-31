@@ -18,6 +18,7 @@ import xarray as xr
 from dask_gateway import Gateway
 from IPython.display import display
 from numba import jit
+from pyinterp.backends.xarray import Grid2D
 from scipy.spatial import SphericalVoronoi, cKDTree
 from shapely.geometry import (
     GeometryCollection,
