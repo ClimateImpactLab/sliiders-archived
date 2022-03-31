@@ -3300,3 +3300,16 @@ def interpolate_da_like(da_in, da_out):
         dims=["lat", "lon"],
         coords=dict(da_out.coords),
     )
+
+
+def read_gdf(fpath):
+    return (
+        pd.read_table(
+            fpath,
+            skiprows=36,
+            names=["lon", "lat", "z"],
+            delim_whitespace=True,
+        )
+        .set_index(["lon", "lat"])
+        .z.to_xarray()
+    )

@@ -597,6 +597,15 @@ DIR_GEOG_DATUMS_INT = DIR_GEOG_INT / "datum_conversions"
 DIR_GEOG_DATUMS_EGM96_WGS84 = DIR_GEOG_DATUMS_RAW / "egm96"
 DIR_GEOG_DATUMS_XGM2019e_WGS84 = DIR_GEOG_DATUMS_RAW / "xgm2019e"
 
+PATH_GEOG_MDT_RAW = (
+    Path("/gcs/rhg-data/impactlab-rhg/coastal")
+    / "data"
+    / "geography"
+    / "mdt"
+    / "aviso_2018"
+    / "mdt_cnes_cls18_global.nc"
+)
+
 PATH_GEOG_DATUMS_GRID = fuse_to_gcsmap(
     DIR_GEOG_DATUMS_INT / f"datum_conversions_gridded_{DATUM_CONVERSION_VERS}.zarr", FS
 )
