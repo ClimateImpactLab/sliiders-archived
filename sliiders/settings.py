@@ -7,9 +7,8 @@ from . import __file__ as pkg_init_name
 from .gcs import FS, fuse_to_gcsmap
 
 # Versions
-GLOBAL_PROTECTED_AREAS_VERS = "v0.1"
-US_PROTECTED_AREAS_VERS = "v0.1"
-LEVEES_VERS = "v0.1"
+GLOBAL_PROTECTED_AREAS_VERS = "v0.2"
+LEVEES_VERS = "v0.2"
 GPW_VERS = "v4rev11"
 LANDSCAN_YEAR = "2019"
 LANDSCAN_VERS = f"LandScan Global {LANDSCAN_YEAR}"
@@ -418,6 +417,16 @@ HIGHEST_WITHELEV_EXPOSURE_METERS = 20
 ELEV_CAP = HIGHEST_WITHELEV_EXPOSURE_METERS + 1  # "higher than coastal" value
 
 ## Spatial
+
+# Area, in "square degrees", above which we will consider endorheic basins as protected areas
+# N.B. this is an arbitrary choice (something more robust could use something like a bathtub model
+# over a highly resolved elevation grid).
+MIN_BASIN_TILE_DEGREE_AREA = 20.0
+
+# minimum distance in degrees from the ocean to include an endorheic basin as
+# a "protected area"
+ENDORHEIC_BASIN_OCEAN_BUFFER = 0.2
+
 MAX_VORONOI_COMPLEXITY = (
     40e6  # Maximum number of initial points in shapefile when generating Voronoi
 )
@@ -519,7 +528,11 @@ PATH_EXPOSURE_BLENDED = (
     / "LitPop_pc_30arcsec.parquet"
 )
 
-DIR_GLOBAL_PROTECTED_AREAS = Path(
+PATH_NATURALEARTH_OCEAN = DIR_SHAPEFILES / "natural_earth" / "ne_10m_ocean"
+DIR_HYDROBASINS_RAW = DIR_DATA_RAW / "hydrosheds" / "hydrobasins"
+DIR_NLDB = DIR_EXPOSURE_RAW / "protected_areas" / "usa" / "nldb"
+
+DIR_GLOBAL_PROTECTED_AREAS = (
     DIR_EXPOSURE_INT
     / "protected_locations"
     / "global"
@@ -527,6 +540,9 @@ DIR_GLOBAL_PROTECTED_AREAS = Path(
     / GLOBAL_PROTECTED_AREAS_VERS
 )
 
+PATH_MANUAL_PROTECTED_AREAS = (
+    DIR_GLOBAL_PROTECTED_AREAS / "manual_global_basins.parquet"
+)
 PATH_GLOBAL_PROTECTED_AREAS = DIR_GLOBAL_PROTECTED_AREAS / "all_protected_areas.parquet"
 
 DIR_WETLANDS_RAW = DIR_DATA_RAW / "wetlands_mangroves"
