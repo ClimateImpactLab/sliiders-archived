@@ -555,9 +555,6 @@ DIR_EXPOSURE_BINNED_TMP_TILES_SEGMENT_AREA = (
 )
 
 PATH_EXPOSURE_TILE_LIST = DIR_EXPOSURE_BINNED / "tmp" / "meta" / "tile_list.parquet"
-PATH_INLAND_TILE_LIST = (
-    DIR_EXPOSURE_BINNED / "tmp" / "meta" / "inland_tile_list.parquet"
-)
 
 PATH_EXPOSURE_AREA_BY_CIAM_AND_ELEVATION = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "ciam_segs_area_by_elev.parquet"
