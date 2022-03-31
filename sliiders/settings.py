@@ -600,6 +600,7 @@ DIR_GEOG_DATUMS_XGM2019e_WGS84 = DIR_GEOG_DATUMS_RAW / "xgm2019e"
 PATH_GEOG_MDT_RAW = (
     Path("/gcs/rhg-data/impactlab-rhg/coastal")
     / "data"
+    / "raw"
     / "geography"
     / "mdt"
     / "aviso_2018"
