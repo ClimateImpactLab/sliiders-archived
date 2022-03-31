@@ -2772,39 +2772,31 @@ def get_tile_names(df, lon_col, lat_col):
     )
 
 
-def get_all_exp_tiles(exp_path, filter_field=None):
+def get_all_exp_tiles(lon, lat):
     """
-    Get the list of tiles included in an exposure dataset.
+    Get the list of CoastalDEM tiles included in an exposure dataset.
 
     Parameters
     ----------
-    exp_path : pathlib.Path
-        Path to exposure Parquet. Must be indexed by `x_ix` and `y_ix`
-
-    filter_field : str
-        Field to filter on. Filter is set to filter out values that are not
-        greater than 0.
+    lon, lat : array-like
+        Defines the longitude and latitude of valid grid cells in an exposure dataset
 
     Returns
     -------
-    np.ndarray
+    :py:class:`numpy.ndarray`
         1D array of unique 1-degree tile names
 
     """
-
-    pq_filter = None
-    if filter_field is not None:
-        pq_filter = [[(filter_field, ">", 0)]]
-
-    exp = pd.read_parquet(exp_path, columns=["x_ix", "y_ix"], filters=pq_filter)
-
-    out = grid_ix_to_val(
-        np.stack((exp["x_ix"], exp["y_ix"])).T, cell_size=sset.LITPOP_GRID_WIDTH
+    exp = pd.DataFrame(
+        np.floor(
+            grid_ix_to_val(
+                np.stack((lon, lat)).T,
+                cell_size=sset.LITPOP_GRID_WIDTH,
+                lon_mask=[True, False],
+            )
+        ).astype(int),
+        columns=["lon", "lat"],
     )
-
-    exp = exp.drop(columns=["x_ix", "y_ix"])
-    exp["lon"] = np.floor(out[:, 0]).astype(int)
-    exp["lat"] = np.floor(out[:, 1]).astype(int)
 
     lonlats = exp.drop_duplicates(["lon", "lat"]).reset_index(drop=True)
 
