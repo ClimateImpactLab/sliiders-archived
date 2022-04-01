@@ -1496,7 +1496,7 @@ def helper_fy_cleaner(list_of_years):
 
     Parameters
     ----------
-    list_of_years : array-like of str
+    list_of_years : array-like of str, or str
         containing years in string format
 
     Returns
@@ -1504,6 +1504,11 @@ def helper_fy_cleaner(list_of_years):
     list containing year values in integer format
 
     """
+
+    single = False
+    if type(list_of_years) is str:
+        list_of_years = [list_of_years]
+        single = True
 
     if np.any(["FY" in x for x in list_of_years]):
         fix = []
@@ -1513,8 +1518,12 @@ def helper_fy_cleaner(list_of_years):
                 if yr < 1950:
                     yr += 100
             fix.append(str(yr))
+        if single:
+            return int(fix[0])
         return [int(x) for x in fix]
 
+    if single:
+        return int(list_of_years)
     return [int(x) for x in list_of_years]
 
 
@@ -1523,6 +1532,31 @@ def organize_cia_wfb_2000_2001(
     no_info_names=REGIONS_TO_SKIP_CIA_WFB,
     wfb_year=2001,
 ):
+    """Organizes the population, GDP, and GDP per capita information from the CIA World
+    Factbook (WFB) versions 2000 and 2001 into `pandas.DataFrame` formats. Baseline
+    function is based on organizing the 2001 version, but can be specified to take
+    care of 2000 version as well.
+
+    Parameters
+    ----------
+    directory : pathlib.Path or str
+        containing the relevant WFB information
+    no_info_names : array-like of str
+        containing country/region names to be excluded when cleaning the information,
+        largely due to their pages containing no usable population and GDP information
+        (e.g., Arctic Ocean)
+    wfb_year : int
+        year that the WFB version was released in
+
+    Returns
+    -------
+    pop_collect : pandas.DataFrame
+        containing country/region-level population (in ones of people)
+    gdp_collect : pandas.DataFrame
+        containing country/region-level PPP GDP (in millions of USD) and PPP GDP per
+        capita (in ones of USD)
+
+    """
 
     msg = "Cleans only 2000 to 2001 versions of CIA WFB."
     assert wfb_year in range(2000, 2002), msg
@@ -1619,13 +1653,35 @@ def organize_cia_wfb_2000_2001(
 def organize_cia_wfb_2002_2004(
     directory=(DIR_CIA_RAW / "factbook-2002"), wfb_year=2002
 ):
+    """Organizes the population, GDP, and GDP per capita information from the CIA World
+    Factbook (WFB) versions 2002 and 2004 into `pandas.DataFrame` formats. Baseline
+    function is based on organizing the 2002 version, but can be specified to take
+    care of 2003-2004 versions as well.
+
+    Parameters
+    ----------
+    directory : pathlib.Path or str
+        containing the relevant WFB information
+    wfb_year : int
+        year that the WFB version was released in
+
+    Returns
+    -------
+    pop_df : pandas.DataFrame
+        containing country/region-level population information (in ones of people)
+    gdp_df : pandas.DataFrame
+        containing country/region-level PPP GDP information (in millions of USD)
+    gdppc_df : pandas.DataFrame
+        containing country/region-level PPP GDP per capita information (in ones of USD)
+
+    """
 
     s_yr, e_yr = 2002, 2004
     msg = "Cleans only {} to {} versions of CIA WFB.".format(s_yr, e_yr)
     assert wfb_year in range(s_yr, e_yr + 1), msg
 
     lst_directory = Path(directory) / "fields"
-    print("Collecting soups...")
+    print("Gathering soups...")
     soups = []
     for i in [2001, 2004, 2119]:
         file = copen(str(lst_directory / "{}.html".format(i)), "r").read()
@@ -1720,7 +1776,7 @@ def organize_cia_wfb_2005(directory=(DIR_CIA_RAW / "factbook-2005"), wfb_year=20
     assert wfb_year in range(s_yr, e_yr + 1), msg
 
     lst_directory = Path(directory) / "fields"
-    print("Collecting soups...")
+    print("Gathering soups...")
     soups = []
     for i in [2001, 2004, 2119]:
         file = copen(str(lst_directory / "{}.html".format(i)), "r").read()
@@ -1728,7 +1784,7 @@ def organize_cia_wfb_2005(directory=(DIR_CIA_RAW / "factbook-2005"), wfb_year=20
 
     # GDP and GDP per capita
     print("Done. Collecting GDP, GDPpc, and population information...")
-    for case, soup in enumerate(soups[0:1]):
+    for case, soup in enumerate(soups):
         collect = []
         lst = [
             re.sub(r"\n|\t", "", x.text)
@@ -1746,17 +1802,60 @@ def organize_cia_wfb_2005(directory=(DIR_CIA_RAW / "factbook-2005"), wfb_year=20
                 searchby = r"[0-9]"
 
             idx = re.search(searchby, i).span()[0]
-            name, value = i[0:idx], i[idx:]
+            name, value = i[0:idx].replace("purchasing power parity - ", ""), i[idx:]
 
             if "World" in name:
                 name = "World"
 
-            collect.append([name, value])
+            value = value.split(" (")
+            value, year = value[0], value[-1]
+            if ("- supplemented" in value) or ("note:" in value):
+                value = re.split(r"note:|- supplemented", value)[0]
+            if case == 0:
+                value = helper_wfb_million_cleaner(value.strip())
+            else:
+                value = int(re.sub(r"\$|\,", "", value))
+            year = int(
+                re.sub(
+                    r"[a-zA-Z]", "", year.replace(" est.", "").replace(")", "").strip()
+                )
+            )
 
-    return soups, collect
+            collect.append([name, value, year])
+        if case == 0:
+            gdp_df = collect.copy()
+        elif case == 1:
+            gdppc_df = collect.copy()
+
+    # GDP and GDPpc
+    gdp_df = pd.DataFrame(gdp_df, columns=["country", "gdp", "year"])
+    gdppc_df = pd.DataFrame(gdp_df, columns=["country", "gdppc", "year"])
+    gdp_df["wfb_year"], gdppc_df["wfb_year"] = wfb_year, wfb_year
+
+    # population
+    pop_df = pd.DataFrame(collect, columns=["country", "pop", "year"])
+    pop_df["wfb_year"] = wfb_year
+    print("Done.\n")
+
+    return pop_df, gdp_df, gdppc_df
 
 
 def helper_wfb_2018_2020_gdp(soup):
+    """Simple helper function for finding and cleaning the name of a country/region,
+    used for organizing CIA World Factbook versions 2018 to 2020 (in conjunction with
+    the function `organize_cia_wfb_2018_2020`).
+
+    Parameters
+    ----------
+    soup : bs4.BeautifulSoup
+        containing country/region information
+
+    Returns
+    -------
+    name : str
+        of the country/region being represented in `soup`
+
+    """
     name = soup.find("title").text
     if " :: " in name:
         name = name.split(" :: ")[1].split(" — ")[0]
@@ -1772,20 +1871,20 @@ def organize_cia_wfb_2018_2020(
     no_info_names=REGIONS_TO_SKIP_CIA_WFB,
 ):
     """Organizes the population, GDP, and GDP per capita information from the CIA World
-    Factbook (WFB) versions 2019 and 2020 into `pandas.DataFrame` formats. Baseline
+    Factbook (WFB) versions 2018 and 2020 into `pandas.DataFrame` formats. Baseline
     function is based on organizing the 2020 version, but can be specified to take
-    care of 2019 version as well.
+    care of 2018-2019 versions as well.
 
     Parameters
     ----------
-    directory : Path-like or str
-        directory containing the html files containing individual country-level
-        information
+    directory : pathlib.Path or str
+        containing the relevant WFB information
     wfb_year : int
-        marking the CIA WFB version
+        year that the WFB version was released in
     no_info_names : array-like of str
-        containing names of regions or countries that do not have population or GDP
-        information (e.g., Arctic Ocean)
+        containing country/region names to be excluded when cleaning the information,
+        largely due to their pages containing no usable population and GDP information
+        (e.g., Arctic Ocean)
 
     Returns
     -------
