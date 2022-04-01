@@ -3187,14 +3187,14 @@ def process_landscan(
     """
     warnings.filterwarnings("ignore", message=".*Reshaping is producing a large chunk*")
 
-    ### Unzipping
+    # Unzipping
     path_landscan = dir_landscan_raw / f"lspop{landscan_year}" / "hdr.adf"
 
     if not path_landscan.exists():
         with zipfile.ZipFile(landscan_zip, "r") as zip_ref:
             zip_ref.extractall(dir_landscan_raw)
 
-    ### Organizing TIF to parquet
+    # Organizing TIF to parquet
 
     image_name = sset.DASK_IMAGE
     gateway = Gateway()
@@ -3203,7 +3203,7 @@ def process_landscan(
     cluster.scale(NWORKERS)
     display(cluster)
 
-    #### Open raw population raster
+    # Open raw population raster
 
     pop_ds = rioxarray.open_rasterio(path_landscan, chunks={"x": 2700, "y": 10440})
     pop_ds = pop_ds.squeeze().drop("band")
@@ -3212,7 +3212,7 @@ def process_landscan(
     pop_ds = pop_ds.where(pop_ds >= 0, 0)
     pop_ds = pop_ds.persist()
 
-    #### Transform to dataframe
+    # Transform to dataframe
 
     pop_da = pop_ds.to_dataset(name="population")
     pop_ddf = pop_da.to_dask_dataframe()
@@ -3223,19 +3223,19 @@ def process_landscan(
     # Bring to local
     pop_df = pop_ddf.compute()
 
-    #### Convert coordinates to indices
+    # Convert coordinates to indices
 
     pop_df["x_ix"] = grid_val_to_ix(pop_df["x"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
 
     pop_df["y_ix"] = grid_val_to_ix(pop_df["y"].to_numpy(), sset.LANDSCAN_GRID_WIDTH)
 
-    #### Drop unnecessary columns
+    # Drop unnecessary columns
 
     pop_with_xy = pop_df.copy()
     pop_df = pop_df.drop(columns=["x", "y"]).reset_index(drop=True)
     pop_with_xy = pop_with_xy.reset_index(drop=True)
 
-    #### Save and shut down workers
+    # Save and shut down workers
     if save_to_file:
         dir_landscan_int.mkdir(exist_ok=True)
         pop_df.to_parquet(dir_landscan_int / "population.parquet", index=False)

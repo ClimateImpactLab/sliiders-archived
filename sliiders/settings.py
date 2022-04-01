@@ -55,7 +55,7 @@ LOCALIZESL_REV = "c9b020a0f9409cde3f6796ca936f229c90f7d5c6"
 # Aland Islands, Western Sahara, Libya, Palestine, South Sudan, Syria, Kosovo
 ISOS_IN_GEG_NOT_LITPOP = ["ALA", "ESH", "LBY", "PSE", "SSD", "SYR", "XKX"]
 
-## for organizing scenarios
+# for organizing scenarios
 SSP_PROJ_ORG_SER = pd.Series(
     {
         "SSP1_v9_130219": "SSP1",
@@ -99,7 +99,7 @@ SCENARIOS = [
     ("SSP5", "IIASA"),
 ]
 
-## country ISO code groupings
+# country ISO code groupings
 EXCLUDED_ISOS = ["ATA", "XCA"]
 
 FRA_MSNG = [
@@ -406,7 +406,7 @@ ALL_ISOS_EXTENDED = np.sort(np.union1d(ALL_ISOS, EXTENDED_ISOS))
 DASK_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
 
 # Constants
-## Data
+# Data
 LITPOP_GRID_WIDTH = 1 / 120
 GEG_GRID_WIDTH = 1 / 24
 LANDSCAN_GRID_WIDTH = 1 / 120
@@ -416,7 +416,7 @@ EXPOSURE_BIN_WIDTH_H = 1 / 10  # 10cm
 HIGHEST_WITHELEV_EXPOSURE_METERS = 20
 ELEV_CAP = HIGHEST_WITHELEV_EXPOSURE_METERS + 1  # "higher than coastal" value
 
-## Spatial
+# Spatial
 MAX_VORONOI_COMPLEXITY = (
     40e6  # Maximum number of initial points in shapefile when generating Voronoi
 )
