@@ -1,6 +1,4 @@
-First, run the notebook in `data_acquisition`.
-
-Then, run all notebooks in `nearest_regions`.
+First, run all notebooks in `nearest_regions`.
 
 Then, run the notebooks in this directory in order:
 
