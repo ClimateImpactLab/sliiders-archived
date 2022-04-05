@@ -3,13 +3,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import __file__ as pkg_init_name
 from .gcs import FS, fuse_to_gcsmap
 
 # Versions
-GLOBAL_PROTECTED_AREAS_VERS = "v0.1"
-US_PROTECTED_AREAS_VERS = "v0.1"
-LEVEES_VERS = "v0.1"
+GLOBAL_PROTECTED_AREAS_VERS = "v0.2"
+LEVEES_VERS = "v0.2"
 GPW_VERS = "v4rev11"
 LANDSCAN_YEAR = "2019"
 LANDSCAN_VERS = f"LandScan Global {LANDSCAN_YEAR}"
@@ -22,7 +20,16 @@ EXPOSURE_BINNED_VERS = "v0.14"
 COUNTRY_LEVEL_TABLE_VERS = "v0.10"
 DATUM_CONVERSION_VERS = "v0.3"
 SLIIDERS_VERS = "v1.0"
-PWT_VERS = "20210318"
+PWT_DATESTAMP = "20220328"
+MPD_DATESTAMP = "20220329"
+WB_WDI_DATESTAMP = "20220329"
+ALAND_STATISTICS_DATESTAMP = "20220329"
+GWDB_DATESTAMP = "20220321"
+OECD_DATESTAMP = "20220329"
+UN_AMA_DATESTAMP = "20220329"
+IMF_WEO_VERS = "October_2021"
+UN_WPP_VERS = "2019"
+IIASA_PROJECTIONS_DOWNLOAD_VERS = "2018"
 
 # Definitions
 SPATIAL_WARNINGS_TO_IGNORE = [
@@ -47,7 +54,7 @@ LOCALIZESL_REV = "c9b020a0f9409cde3f6796ca936f229c90f7d5c6"
 # Aland Islands, Western Sahara, Libya, Palestine, South Sudan, Syria, Kosovo
 ISOS_IN_GEG_NOT_LITPOP = ["ALA", "ESH", "LBY", "PSE", "SSD", "SYR", "XKX"]
 
-## for organizing scenarios
+# for organizing scenarios
 SSP_PROJ_ORG_SER = pd.Series(
     {
         "SSP1_v9_130219": "SSP1",
@@ -91,7 +98,7 @@ SCENARIOS = [
     ("SSP5", "IIASA"),
 ]
 
-## country ISO code groupings
+# country ISO code groupings
 EXCLUDED_ISOS = ["ATA", "XCA"]
 
 FRA_MSNG = [
@@ -398,7 +405,7 @@ ALL_ISOS_EXTENDED = np.sort(np.union1d(ALL_ISOS, EXTENDED_ISOS))
 DASK_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
 
 # Constants
-## Data
+# Data
 LITPOP_GRID_WIDTH = 1 / 120
 GEG_GRID_WIDTH = 1 / 24
 LANDSCAN_GRID_WIDTH = 1 / 120
@@ -409,6 +416,16 @@ HIGHEST_WITHELEV_EXPOSURE_METERS = 20
 ELEV_CAP = HIGHEST_WITHELEV_EXPOSURE_METERS + 1  # "higher than coastal" value
 
 ## Spatial
+
+# Area, in "square degrees", above which we will consider endorheic basins as protected areas
+# N.B. this is an arbitrary choice (something more robust could use something like a bathtub model
+# over a highly resolved elevation grid).
+MIN_BASIN_TILE_DEGREE_AREA = 20.0
+
+# minimum distance in degrees from the ocean to include an endorheic basin as
+# a "protected area"
+ENDORHEIC_BASIN_OCEAN_BUFFER = 0.2
+
 MAX_VORONOI_COMPLEXITY = (
     40e6  # Maximum number of initial points in shapefile when generating Voronoi
 )
@@ -427,8 +444,6 @@ SMALLEST_INTERIOR_RING = 1e-13
 SVALS = np.array([10, 100, 1000, 10000])
 
 # Paths and Directories
-HOME = Path(pkg_init_name).parent.parent
-
 DIR_DATA = Path("/gcs/rhg-data/impactlab-rhg/coastal/sliiders")
 
 DIR_DATA_RAW = DIR_DATA / "raw"
@@ -465,21 +480,9 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
     DIR_RESULTS / f"sliiders-slr-{SLIIDERS_VERS}.zarr", FS
 )
 
-PATH_CIAM_SITES = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
-PATH_CIAM_SITES_WITHISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_stations_withiso_ciam.parquet"
-)
-PATH_CIAM_SITES_VORONOI_BY_ISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_point_regions_by_iso.parquet"
-)
+PATH_SEG_CENTROIDS = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
 
 PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
-PATH_CIAM_COASTLINES_BY_ISO = _CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_iso.parquet"
-)
-PATH_CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_gtsm.parquet"
-)
 
 DIR_CIAM_VORONOI = (
     DIR_GEOGRAPHY_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
@@ -491,7 +494,6 @@ PATH_CIAM_ADM1_VORONOI_INTERSECTIONS = (
 PATH_CIAM_ADM1_VORONOI_INTERSECTIONS_SHP = (
     DIR_CIAM_VORONOI / "ciam_and_adm1_intersections.shp"
 )
-PATH_CIAM_POLYS = DIR_CIAM_VORONOI / "ciam_polys.parquet"
 
 DIR_SHAPEFILES = Path("/gcs/rhg-data/impactlab-rhg/spatial/shapefiles/source")
 
@@ -502,8 +504,6 @@ PATH_GADM_ADM1 = DIR_GADM / "adm1.parquet"
 PATH_GADM_ADM0_VORONOI = DIR_GADM / "adm0_voronoi.parquet"
 PATH_GADM_ADM1_VORONOI = DIR_GADM / "adm1_voronoi.parquet"
 
-PATH_PWT_RAW = DIR_EXPOSURE_RAW / "ypk" / "pwt_100.xlsx"
-
 PATH_EXPOSURE_BLENDED = (
     DIR_EXPOSURE_INT
     / "asset_value"
@@ -512,7 +512,10 @@ PATH_EXPOSURE_BLENDED = (
     / "LitPop_pc_30arcsec.parquet"
 )
 
-DIR_GLOBAL_PROTECTED_AREAS = Path(
+PATH_NATURALEARTH_OCEAN = DIR_SHAPEFILES / "natural_earth" / "ne_10m_ocean"
+DIR_HYDROBASINS_RAW = DIR_DATA_RAW / "hydrosheds" / "hydrobasins"
+
+DIR_GLOBAL_PROTECTED_AREAS = (
     DIR_EXPOSURE_INT
     / "protected_locations"
     / "global"
@@ -520,6 +523,17 @@ DIR_GLOBAL_PROTECTED_AREAS = Path(
     / GLOBAL_PROTECTED_AREAS_VERS
 )
 
+PATH_US_MANUAL_PROTECTED_AREAS = (
+    DIR_EXPOSURE_RAW
+    / "protected_areas"
+    / "usa"
+    / "manual"
+    / "us_manual_protected_areas.parquet"
+)
+
+PATH_MANUAL_PROTECTED_AREAS = (
+    DIR_GLOBAL_PROTECTED_AREAS / "manual_global_basins.parquet"
+)
 PATH_GLOBAL_PROTECTED_AREAS = DIR_GLOBAL_PROTECTED_AREAS / "all_protected_areas.parquet"
 
 DIR_WETLANDS_RAW = DIR_DATA_RAW / "wetlands_mangroves"
@@ -553,15 +567,6 @@ DIR_LANDSCAN_RAW = DIR_EXPOSURE_RAW / "landscan"
 DIR_LANDSCAN_INT = DIR_EXPOSURE_INT / "landscan" / f"ls{LANDSCAN_YEAR}"
 PATH_LANDSCAN_INT = DIR_LANDSCAN_INT / "population.parquet"
 
-## Paths and directories specific for the country-level process
-DIR_YPK_INT = DIR_EXPOSURE_INT / "ypk"
-DIR_YPK_FINAL = DIR_YPK_INT / "finalized"
-DIR_YPK_RAW = DIR_EXPOSURE_RAW / "ypk"
-PATH_COUNTRY_LEVEL_EXPOSURE = DIR_YPK_FINAL / "gdp_gdppc_pop_capital_1950_2020.parquet"
-PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
-    DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
-)
-
 DIR_EXPOSURE_BINNED = (
     DIR_EXPOSURE_INT / "asset_value" / "binned" / "global" / "historical"
 )
@@ -573,9 +578,6 @@ DIR_EXPOSURE_BINNED_TMP_TILES_SEGMENT_AREA = (
 )
 
 PATH_EXPOSURE_TILE_LIST = DIR_EXPOSURE_BINNED / "tmp" / "meta" / "tile_list.parquet"
-PATH_INLAND_TILE_LIST = (
-    DIR_EXPOSURE_BINNED / "tmp" / "meta" / "inland_tile_list.parquet"
-)
 
 PATH_EXPOSURE_AREA_BY_CIAM_AND_ELEVATION = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "ciam_segs_area_by_elev.parquet"
@@ -591,8 +593,15 @@ PATH_EXPOSURE_BINNED_WITHELEV = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "binned_exposure_withelev_base.parquet"
 )
 
+DIR_GEOG_RAW = DIR_DATA_RAW / "geography"
 DIR_GEOG_INT = DIR_DATA_INT / "geography"
+DIR_GEOG_DATUMS_RAW = DIR_GEOG_RAW / "datum_conversions"
 DIR_GEOG_DATUMS_INT = DIR_GEOG_INT / "datum_conversions"
+
+DIR_GEOG_DATUMS_EGM96_WGS84 = DIR_GEOG_DATUMS_RAW / "egm96"
+DIR_GEOG_DATUMS_XGM2019e_WGS84 = DIR_GEOG_DATUMS_RAW / "xgm2019e"
+
+PATH_GEOG_MDT_RAW = DIR_GEOG_RAW / "mdt" / "aviso_2018" / "mdt_cnes_cls18_global.nc"
 
 PATH_GEOG_DATUMS_GRID = fuse_to_gcsmap(
     DIR_GEOG_DATUMS_INT / f"datum_conversions_gridded_{DATUM_CONVERSION_VERS}.zarr", FS
@@ -605,3 +614,28 @@ PATH_GTSM_SURGE = (
 DIR_CCI_RAW = DIR_DATA_RAW / "cci"
 PATH_EXPOSURE_WB_ICP = DIR_CCI_RAW / "world_bank_ICP_2017.csv"
 PATH_EXPOSURE_LINCKE = DIR_CCI_RAW / "lincke_2021_country_input.csv"
+
+# Various directories and paths for the country-level ("YPK") workflow
+DIR_YPK_INT = DIR_EXPOSURE_INT / "ypk"
+DIR_YPK_FINAL = DIR_YPK_INT / "finalized"
+DIR_YPK_RAW = DIR_EXPOSURE_RAW / "ypk"
+PATH_COUNTRY_LEVEL_EXPOSURE = DIR_YPK_FINAL / "gdp_gdppc_pop_capital_1950_2020.parquet"
+PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
+    DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
+)
+
+DIR_CIA_RAW = DIR_YPK_RAW / "cia_wfb"
+DIR_UN_AMA_RAW = DIR_YPK_RAW / "un_ama" / UN_AMA_DATESTAMP
+DIR_UN_WPP_RAW = DIR_YPK_RAW / "un_wpp" / UN_WPP_VERS
+DIR_WB_WDI_RAW = DIR_YPK_RAW / "wb_wdi" / WB_WDI_DATESTAMP
+DIR_OECD_REGIONS_RAW = DIR_YPK_RAW / "oecd_regions" / OECD_DATESTAMP
+DIR_IIASA_PROJECTIONS = (
+    DIR_YPK_RAW / "iiasa_projections" / IIASA_PROJECTIONS_DOWNLOAD_VERS
+)
+DIR_ALAND_STATISTICS_RAW = DIR_YPK_RAW / "asub" / ALAND_STATISTICS_DATESTAMP
+PATH_GWDB2021_RAW = (
+    DIR_YPK_RAW / "gwdb" / GWDB_DATESTAMP / "global-wealth-databook-2021.pdf"
+)
+PATH_PWT_RAW = DIR_YPK_RAW / "pwt" / PWT_DATESTAMP / "pwt_100.xlsx"
+PATH_IMF_WEO_RAW = DIR_YPK_RAW / "imf_weo" / IMF_WEO_VERS / "WEO_iy_ratio_pop_gdp.xlsx"
+PATH_MPD_RAW = DIR_YPK_RAW / "mpd" / MPD_DATESTAMP / "maddison_project.xlsx"
