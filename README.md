@@ -68,6 +68,7 @@ The list and order of notebooks to run is reproduced in full here, along with an
       7. `7-create_dem_mss.ipynb`
       8. `8-generate_protected_areas.ipynb`
       9. `9-generate_exposure_tiles.ipynb`
+      10. `10-combine_exposure_tiles.ipynb`
    4. `create-SLIIDERS-ECON.ipynb`
    
 The resulting datasets can be found at these paths, defined in `settings.py`:  
