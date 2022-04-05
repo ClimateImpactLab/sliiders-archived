@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import __file__ as pkg_init_name
 from .gcs import FS, fuse_to_gcsmap
 
 # Versions
@@ -55,7 +54,7 @@ LOCALIZESL_REV = "c9b020a0f9409cde3f6796ca936f229c90f7d5c6"
 # Aland Islands, Western Sahara, Libya, Palestine, South Sudan, Syria, Kosovo
 ISOS_IN_GEG_NOT_LITPOP = ["ALA", "ESH", "LBY", "PSE", "SSD", "SYR", "XKX"]
 
-## for organizing scenarios
+# for organizing scenarios
 SSP_PROJ_ORG_SER = pd.Series(
     {
         "SSP1_v9_130219": "SSP1",
@@ -99,7 +98,7 @@ SCENARIOS = [
     ("SSP5", "IIASA"),
 ]
 
-## country ISO code groupings
+# country ISO code groupings
 EXCLUDED_ISOS = ["ATA", "XCA"]
 
 FRA_MSNG = [
@@ -463,7 +462,7 @@ NLDB_STATES = [
 DASK_IMAGE = "gcr.io/rhg-project-1/pytc-image-devbase:latest"
 
 # Constants
-## Data
+# Data
 LITPOP_GRID_WIDTH = 1 / 120
 GEG_GRID_WIDTH = 1 / 24
 LANDSCAN_GRID_WIDTH = 1 / 120
@@ -502,8 +501,6 @@ SMALLEST_INTERIOR_RING = 1e-13
 SVALS = np.array([10, 100, 1000, 10000])
 
 # Paths and Directories
-HOME = Path(pkg_init_name).parent.parent
-
 DIR_DATA = Path("/gcs/rhg-data/impactlab-rhg/coastal/sliiders")
 
 DIR_DATA_RAW = DIR_DATA / "raw"
@@ -540,21 +537,9 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
     DIR_RESULTS / f"sliiders-slr-{SLIIDERS_VERS}.zarr", FS
 )
 
-PATH_CIAM_SITES = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
-PATH_CIAM_SITES_WITHISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_stations_withiso_ciam.parquet"
-)
-PATH_CIAM_SITES_VORONOI_BY_ISO = (
-    DIR_GEOGRAPHY_INT / "tmp" / "gtsm_point_regions_by_iso.parquet"
-)
+PATH_SEG_CENTROIDS = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
 
 PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
-PATH_CIAM_COASTLINES_BY_ISO = _CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_iso.parquet"
-)
-PATH_CIAM_COASTLINES_BY_CIAM_SITE = (
-    DIR_GEOGRAPHY_INT / "tmp" / "ne_coastlines_by_gtsm.parquet"
-)
 
 DIR_CIAM_VORONOI = (
     DIR_GEOGRAPHY_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
@@ -566,7 +551,6 @@ PATH_CIAM_ADM1_VORONOI_INTERSECTIONS = (
 PATH_CIAM_ADM1_VORONOI_INTERSECTIONS_SHP = (
     DIR_CIAM_VORONOI / "ciam_and_adm1_intersections.shp"
 )
-PATH_CIAM_POLYS = DIR_CIAM_VORONOI / "ciam_polys.parquet"
 
 DIR_SHAPEFILES = Path("/gcs/rhg-data/impactlab-rhg/spatial/shapefiles/source")
 
@@ -647,9 +631,6 @@ DIR_EXPOSURE_BINNED_TMP_TILES_SEGMENT_AREA = (
 )
 
 PATH_EXPOSURE_TILE_LIST = DIR_EXPOSURE_BINNED / "tmp" / "meta" / "tile_list.parquet"
-PATH_INLAND_TILE_LIST = (
-    DIR_EXPOSURE_BINNED / "tmp" / "meta" / "inland_tile_list.parquet"
-)
 
 PATH_EXPOSURE_AREA_BY_CIAM_AND_ELEVATION = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "ciam_segs_area_by_elev.parquet"
