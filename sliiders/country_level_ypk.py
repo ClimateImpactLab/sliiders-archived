@@ -1,6 +1,5 @@
 # various functions used for the country-level information workflow
 from itertools import product as lstprod
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
