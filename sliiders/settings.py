@@ -572,16 +572,20 @@ PATH_EXPOSURE_BLENDED = (
 PATH_NATURALEARTH_OCEAN = DIR_SHAPEFILES / "natural_earth" / "ne_10m_ocean"
 DIR_HYDROBASINS_RAW = DIR_DATA_RAW / "hydrosheds" / "hydrobasins"
 
-HOME = Path(pkg_init_name).parent.parent
-
-PATH_US_MANUAL_PROTECTED_AREAS = HOME / "data" / "us_manual_protected_areas.parquet"
-
 DIR_GLOBAL_PROTECTED_AREAS = (
     DIR_EXPOSURE_INT
     / "protected_locations"
     / "global"
     / "historical"
     / GLOBAL_PROTECTED_AREAS_VERS
+)
+
+PATH_US_MANUAL_PROTECTED_AREAS = (
+    DIR_EXPOSURE_RAW
+    / "protected_areas"
+    / "usa"
+    / "manual"
+    / "us_manual_protected_areas.parquet"
 )
 
 PATH_MANUAL_PROTECTED_AREAS = (
