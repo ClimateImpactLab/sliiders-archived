@@ -50,39 +50,29 @@ The list and order of notebooks to run is reproduced in full here, along with an
    4. `retrieve-num-gcms.ipynb`
    5. `process-localizesl-output.ipynb`
 2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**
-   1. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
-      1. `ypk1_data_acquisition.ipynb`
-      2. `ypk2_prep_clean.ipynb`
-      3. `ypk3_reorg_and_impute_ypk.ipynb`
-      4. `ypk4_demo_ratios_historical_reg.ipynb`
-      5. `ypk5_impute_hist_capital.ipynb`
-      6. `ypk6_projected_yp.ipynb`
-      7. `ypk7_projected_capital.ipynb`
-   2. `download-sliiders-econ-input-data.ipynb`
-   3. Manually isolate the 10 km-spaced coastline points included in the CoDEC dataset from the 50 km-spaced points, and save these as `gtsm_stations_eur_tothin.shp` in the defined in `settings.py` as `DIR_CIAM_SHAPEFILES`.
-   4. `create-coastline-segments.ipynb`
-   5. Download [CoastalDEM v1.1](https://go.climatecentral.org/coastaldem/). Save `.tif` files directly in the directory defined in `settings.py` as `DIR_COASTALDEM`.
-   6. Download the [Mean Dynamic Topography](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/mdt/mdt-global-cnes-cls18.html) (MDT) and [xgm2019E](https://dataservices.gfz-potsdam.de/icgem/showshort.php?id=escidoc:4529896) datasets, and save both as variables in the `.zarr` file defined in `settings.py` as `PATH_GEOG_DATUMS_GRID`. A data access request may be necessary to acquire the MDT dataset.
-   7. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
-      1. `nearest_regions` ([docs](notebooks/create-SLIIDERS-ECON/exposure/nearest_regions)): Generate globally comprehensive map of regions delineating the combination of closest GADM adm1 regions and CIAM segments.
-         1. `0a. filter-adm1.ipynb`
-         2. `0b. voronoi-adm1.ipynb`
-         3. `1a. assign-isos-to-points.ipynb`
-         4. `1b. generate-country-level-point-voronoi.ipynb`
-         5. `1c. get-coastlines-by-country.ipynb`
-         6. `1d. get-coastseg-by-gtsm-point.ipynb`
-         7. `2. generate-voronoi-from-gtsm-segments.ipynb`
-      2. `0. fill_missing_litpop_with_geg.ipynb`
-      3. `1. vectorize-wetlands.ipynb`
-      4. `2. get_positive_elev_tiles.ipynb`
-      5. `3. create_dem_mss.ipynb`
-      6. `4. generate_exposure_tiles.ipynb`
-      7. `5. combine_exposure_tiles.ipynb`
-   8. `create-SLIIDERS-ECON.ipynb`
+   1. `download-sliiders-econ-input-data.ipynb`
+   2. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
+      1. `ypk1_prep_clean.ipynb`
+      2. `ypk2_reorg_and_impute_ypk.ipynb`
+      3. `ypk3_demo_ratios_historical_reg.ipynb`
+      4. `ypk4_impute_hist_capital.ipynb`
+      5. `ypk5_projected_yp.ipynb`
+      6. `ypk6_projected_capital.ipynb`
+   3. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
+      1. `1-create-coastline-segments.ipynb`
+      2. `2-create-segment-regions.ipynb`
+      3. `3-fill_missing_litpop_with_geg.ipynb`
+      4. `4-vectorize-wetlands.ipynb`
+      5. `5-get_positive_elev_tiles.ipynb`
+      6. `6-generate_datum_conversion_grid.ipynb`
+      7. `7-create_dem_mss.ipynb`
+      8. `8-generate_protected_areas.ipynb`
+      9. `9-generate_exposure_tiles.ipynb`
+   4. `create-SLIIDERS-ECON.ipynb`
    
-The resulting datasets can be found at the paths defined in `settings.py`:  
-**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`  
-**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`  
+The resulting datasets can be found at these paths, defined in `settings.py`:  
+**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`
+**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`
 
 ## Support
 Please file an issue for any problems you encounter.
