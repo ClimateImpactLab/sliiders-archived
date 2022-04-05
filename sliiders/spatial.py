@@ -3252,4 +3252,3 @@ def process_landscan(
     cluster.shutdown()
 
     return pop_df
-
