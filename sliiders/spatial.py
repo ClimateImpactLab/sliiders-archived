@@ -510,9 +510,6 @@ def grid_gdf(
     orig_gdf : :py:class:`geopandas.GeoSeries` or :py:class:`geopandas.GeoSeries`
         GeoDataFrame/GeoSeries to be divided into a grid
 
-    orig_geo_col : str
-        Column in `orig_gdf` containing geometry to be divided
-
     box_size : float
         Width and height of boxes to divide geometries into
 
@@ -1689,16 +1686,21 @@ def get_voronoi_from_sites(sites):
     """
     sites = remove_duplicate_points(sites)
     if sites.index.nunique() == 1:
-        out = sites.copy()
+        out = sites.iloc[0:1].copy()
         out["geometry"] = box(-180, -90, 180, 90)
     else:
         if sites.shape[0] <= 3:
             sites = append_extra_pts(sites)
         vor_gser = get_spherical_voronoi_gser(sites.geometry, show_bar=False)
-        out = gpd.GeoDataFrame(
-            sites.drop(columns="geometry", errors="ignore").join(vor_gser),
-            crs=sites.crs,
+        site_isos = (
+            sites.reset_index(drop=False)
+            .drop(columns="geometry", errors="ignore")
+            .drop_duplicates()
+            .set_index("station_id")
         )
+
+        out = vor_gser.to_frame().join(site_isos)
+
     return out
 
 
@@ -1871,8 +1873,8 @@ def get_voronoi_regions(full_regions):
         full_regions.geometry.explode(index_parts=False)
     )
 
-    # This has been tested with XYZ coordinates so cannot guarantee performance on more
-    # complex shapefiles
+    # This has been tested with up to 40 million coordinates, so cannot
+    # guarantee performance or memory usage on more complex shapefiles
     assert (
         pygeos.count_coordinates(pygeos.from_shapely(region_polys.geometry.values))
         < sset.MAX_VORONOI_COMPLEXITY
@@ -2610,8 +2612,7 @@ def get_country_level_voronoi_gdf(all_pts_df):
     # Assign ISO to point-region shapes
     assert vor_gdf["ISO"].isnull().sum() == 0
 
-    # Aggregate to site level
-    return vor_gdf.dissolve(vor_gdf.index.name)
+    return vor_gdf
 
 
 def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
@@ -2646,9 +2647,7 @@ def generate_voronoi_from_segments(segments, region_gdf, overlay_name):
     vor_gdf = get_country_level_voronoi_gdf(all_pts_df)
 
     # Calculate Voronoi diagram of all coastal segments, independent of ISO
-    all_stations_vor = get_voronoi_from_sites(all_pts_df.drop(columns="ISO")).dissolve(
-        all_pts_df.index.name
-    )
+    all_stations_vor = get_voronoi_from_sites(all_pts_df.drop(columns="ISO"))
 
     # Join ISO-level Voronoi diagrams with country shapes to get final seg-region
     # polygons
