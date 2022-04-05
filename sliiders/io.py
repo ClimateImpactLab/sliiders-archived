@@ -1,4 +1,5 @@
 import geopandas as gpd
+import pandas as pd
 from cartopy.io import shapereader
 
 
@@ -33,3 +34,33 @@ def load_adm0_shpfiles(vector_types, resolution_m=10):
             )
         )
     return return_dict
+
+
+def read_gdf(fpath):
+    """Reads in the `.gdf` file located at `fpath` into `pandas.DataFrame`, assigns
+    columns `lon` for longitude, `lat` for latitude, and `z` for data (such as geoid),
+    then returns a `xarray.DataArray` containing the values of `z` and coordinates
+    `lon` and `lat`.
+
+    Parameters
+    ----------
+    fpath : pathlib.Path-like
+        path where the `.gdf` file of interest is located at
+
+    Returns
+    -------
+    xarray.DataArray
+        containing values of `z` with coordinates `lon` and `lat`
+
+    """
+
+    return (
+        pd.read_table(
+            fpath,
+            skiprows=36,
+            names=["lon", "lat", "z"],
+            delim_whitespace=True,
+        )
+        .set_index(["lon", "lat"])
+        .z.to_xarray()
+    )
