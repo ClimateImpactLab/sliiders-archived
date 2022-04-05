@@ -71,7 +71,7 @@ The list and order of notebooks to run is reproduced in full here, along with an
    4. `create-SLIIDERS-ECON.ipynb`
    
 The resulting datasets can be found at these paths, defined in `settings.py`:  
-**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`
+**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`  
 **SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`
 
 ## Support
