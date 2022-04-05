@@ -1061,6 +1061,32 @@ def combine_reg_group(reg_group):
 
 
 def get_reg_group(loc_reg_lists, loc, regions):
+    """Get all regions, as lists of vertex indices, corresponding to an ID
+    used to assign Voronoi regions.
+
+    Parameters
+    ----------
+    loc_reg_lists : dict from object to list of int
+        Mapping from each ID of the Voronoi-generating Polygon, to the list
+        of all indices of generator points with that ID.
+
+    loc : object
+        Some key (ID) in `loc_reg_lists`
+
+    regions : list of lists of int
+        Corresponds to the `regions` property of a
+        `scipy.spatial.SphericalVoronoi` object. From their documentation:
+        "the n-th entry is a list consisting of the indices of the vertices
+        belonging to the n-th point in points"
+        (https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.SphericalVoronoi.html)
+
+    Returns
+    -------
+    List of ints
+        List of lists of vertex indices, where each sub-list represents a
+        region, corresponding to all the generator points sharing the ID `loc`.
+
+    """
     reg_group = itemgetter(*loc_reg_lists[loc])(regions)
     if isinstance(reg_group, tuple):
         return list(reg_group)
@@ -1069,7 +1095,27 @@ def get_reg_group(loc_reg_lists, loc, regions):
 
 
 def fix_ring_topology(reg_group_polys, reg_group_loc_ids):
+    """Insert holes in polygons that completely surround another polygon so
+    that they are distinct. This resolves an issue in Voronoi construction
+    where some regions cover others that they surround, rather than including a
+    hole where the surrounded polygon should be.
 
+    Parameters
+    ----------
+    reg_group_polys : list of shapely.geometry.Polygon
+        List of all Voronoi polygons in longitude-latitude space.
+
+    reg_group_loc_ids : list of int
+        List of IDs corresponding to the generating regions of
+        `reg_group_polys`.
+
+    Returns
+    -------
+    reg_group_polys, reg_group_loc_ids : tuple
+        The inputs, modified so that surrounding polygons have holes where
+        they surround other polygons.
+
+    """
     group_polys = pygeos.from_shapely(reg_group_polys)
 
     tree = pygeos.STRtree(group_polys)
@@ -1421,8 +1467,8 @@ def get_groups_of_regions(
     Parameters
     ----------
     loc_reg_lists : dict from object to list of int
-        Mapping from the `UID` of the Voronoi-generating Polygon, to the list
-        of all indices in `pts_df` with that `UID`.
+        Mapping from each ID of the Voronoi-generating Polygon, to the list
+        of all indices of generator points with that ID.
 
     loc : object
         Some key in `loc_reg_lists`
