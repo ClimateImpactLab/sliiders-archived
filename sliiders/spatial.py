@@ -3252,3 +3252,34 @@ def process_landscan(
     cluster.shutdown()
 
     return pop_df
+
+
+def interpolate_da_like(da_in, da_out):
+    """Based on the coordinates of `da_out`, interpolate (bicubic) the data that is
+    contained in `da_in`; both `da_in` and `da_out` need to be `xarray.DataArray`s in
+    two-dimensional grid format, with coordinates `lon` and `lat`.
+
+    Parameters
+    ----------
+    da_in : xarray.DataArray
+        containing data that needs interpolation
+    da_out : xarray.DataArray
+        containing grid structure that `da_in` data will be interpolated over
+
+    Returns
+    -------
+    xarray.DataArray
+        containing bicubic interpolated version of `da_in` based on the grids of
+        `da_out`
+
+    """
+
+    xx, yy = np.meshgrid(da_out.lon.values, da_out.lat.values)
+    interpolator = Grid2D(da_in, geodetic=True)
+    interp_out = interpolator.bicubic(coords={"lon": xx.flatten(), "lat": yy.flatten()})
+
+    return xr.DataArray(
+        interp_out.reshape(len(da_out.lat), len(da_out.lon)),
+        dims=["lat", "lon"],
+        coords=dict(da_out.coords),
+    )
