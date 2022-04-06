@@ -623,7 +623,6 @@ PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
     DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
 )
 
-DIR_CIA_RAW = DIR_YPK_RAW / "cia_wfb"
 DIR_UN_AMA_RAW = DIR_YPK_RAW / "un_ama" / UN_AMA_DATESTAMP
 DIR_UN_WPP_RAW = DIR_YPK_RAW / "un_wpp" / UN_WPP_VERS
 DIR_WB_WDI_RAW = DIR_YPK_RAW / "wb_wdi" / WB_WDI_DATESTAMP
