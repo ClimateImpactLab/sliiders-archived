@@ -33,15 +33,50 @@ All filepaths and settings for the notebooks can be found within `settings.py`. 
   - `io.py`: Contains various I/O-related functions
   - `spatial.py`: Contains functions for executing spatial and geographic operations including those related to shapefiles, grid-cell level operations, and more.
   - `dask.py`: Contains utility functions for working with dask clusters
-  - `country_level_ypk.py`: contains functions for cleaning and working with country-level socioeconomic data, especially for the workflow in `notebooks/country_level_ypk`
+  - `country_level_ypk.py`: Contains functions for cleaning and working with country-level socioeconomic data, especially for the workflow in `notebooks/country_level_ypk`
+
 * `notebooks`: contains the workflows to create SLIIDERS-ECON and SLIIDERS-SLR.
 
-## Generating SLIIDERS-ECON and SLIIDERS-SLR
+## Instructions (Generating SLIIDERS-ECON and SLIIDERS-SLR)
 
-To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in subdirectories under `notebooks` to learn about how to execute the workflows.
+To generate **SLIIDERS-ECON** and **SLIIDERS-SLR**, please follow the directions in `notebooks/README.md` and other readme files in the subdirectories within `notebooks` to learn about how to execute the workflows.  
+\
+The list and order of notebooks to run is reproduced in full here, along with any necessary manual steps. Click the `docs` link for each workflow to navigate to the relevant directory's page.
+
+1. `create-SLIIDERS-SLR` ([docs](notebooks/create-SLIIDERS-SLR)): Workflow to generate **SLIIDERS-SLR**
+   1. `download-ifile-to-gcs.ipynb`
+   2. `convert-mat-version.ipynb`
+   3. `generate-projected-lsl.ipynb`
+   4. `retrieve-num-gcms.ipynb`
+   5. `process-localizesl-output.ipynb`
+2. `create-SLIIDERS-ECON` ([docs](notebooks/create-SLIIDERS-ECON)): Workflow to generate **SLIIDERS-ECON**
+   1. `download-sliiders-econ-input-data.ipynb`
+   2. `country_level_ypk` ([docs](notebooks/create-SLIIDERS-ECON/country_level_ypk)): Workflow for organizing and projecting GDP (Y), population (P), capital stock (K), and related variables for historical (1950-2020) and future (2010-2100) timelines.
+      1. `ypk1_prep_clean.ipynb`
+      2. `ypk2_reorg_and_impute_ypk.ipynb`
+      3. `ypk3_demo_ratios_historical_reg.ipynb`
+      4. `ypk4_impute_hist_capital.ipynb`
+      5. `ypk5_projected_yp.ipynb`
+      6. `ypk6_projected_capital.ipynb`
+   3. `exposure` ([docs](notebooks/create-SLIIDERS-ECON/exposure)): Workflow to generate present-day exposure grid.
+      1. `1-create-coastline-segments.ipynb`
+      2. `2-create-segment-regions.ipynb`
+      3. `3-fill_missing_litpop_with_geg.ipynb`
+      4. `4-vectorize-wetlands.ipynb`
+      5. `5-get_positive_elev_tiles.ipynb`
+      6. `6-generate_datum_conversion_grid.ipynb`
+      7. `7-create_dem_mss.ipynb`
+      8. `8-generate_protected_areas.ipynb`
+      9. `9-generate_exposure_tiles.ipynb`
+      10. `10-combine_exposure_tiles.ipynb`
+   4. `create-SLIIDERS-ECON.ipynb`
+   
+The resulting datasets can be found at these paths, defined in `settings.py`:  
+**SLIIDERS-ECON**: `PATH_SLIIDERS_ECON`  
+**SLIIDERS-SLR**: `PATH_SLIIDERS_SLR`
 
 ## Support
-Please file an issue for any problems you encounter
+Please file an issue for any problems you encounter.
 
 ## Contributing
 We encourage community contributions. At the moment, we have no contribution template. Please fork the project and file a Merge Request to propose your addition. Clearly define the contribution that the Merge Request is making and, when any issues have been resolved, we will merge the new code.

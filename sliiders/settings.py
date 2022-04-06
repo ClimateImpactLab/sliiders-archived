@@ -467,7 +467,8 @@ DIR_IFILES_RAW = DIR_SLR_RAW / "ifiles"
 DIR_IFILES_INT = DIR_SLR_INT / "ifiles"
 PATH_SLR_N_GCMS = fuse_to_gcsmap(DIR_SLR_INT / f"numGCMs_{SLIIDERS_VERS}.zarr", FS)
 
-DIR_GEOGRAPHY_INT = DIR_DATA_INT / "geography"
+DIR_GEOG_RAW = DIR_DATA_RAW / "geography"
+DIR_GEOG_INT = DIR_DATA_INT / "geography"
 
 PATH_CIAM_2016 = fuse_to_gcsmap(
     DIR_DATA_RAW / "CIAM_2016" / "diaz2016_inputs_raw.zarr", FS
@@ -480,13 +481,13 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
     DIR_RESULTS / f"sliiders-slr-{SLIIDERS_VERS}.zarr", FS
 )
 
-PATH_SEG_CENTROIDS = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
+PATH_SEG_CENTROIDS = DIR_GEOG_INT / "gtsm_stations_thinned_ciam"
 
-PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
+PATH_CIAM_COASTLINES = DIR_GEOG_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
 
-DIR_CIAM_VORONOI = (
-    DIR_GEOGRAPHY_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
-)
+DIR_GTSM_STATIONS_TOTHIN = DIR_GEOG_RAW / "gtsm_stations_eur_tothin"
+
+DIR_CIAM_VORONOI = DIR_GEOG_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
 PATH_CIAM_ADM1_VORONOI_INTERSECTIONS = (
     DIR_CIAM_VORONOI / "ciam_and_adm1_intersections.parquet"
 )
@@ -593,8 +594,6 @@ PATH_EXPOSURE_BINNED_WITHELEV = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "binned_exposure_withelev_base.parquet"
 )
 
-DIR_GEOG_RAW = DIR_DATA_RAW / "geography"
-DIR_GEOG_INT = DIR_DATA_INT / "geography"
 DIR_GEOG_DATUMS_RAW = DIR_GEOG_RAW / "datum_conversions"
 DIR_GEOG_DATUMS_INT = DIR_GEOG_INT / "datum_conversions"
 
