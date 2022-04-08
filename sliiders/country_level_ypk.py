@@ -1,4 +1,7 @@
-# various functions used for the country-level information workflow
+"""
+various functions used for the country-level information workflow in
+`notebooks/create-SLIIDERS-ECON/country_level_ypk`
+"""
 from itertools import product as lstprod
 
 import matplotlib.pyplot as plt

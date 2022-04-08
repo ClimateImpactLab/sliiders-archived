@@ -6,8 +6,9 @@ import pandas as pd
 from .gcs import FS, fuse_to_gcsmap
 
 # Versions
-GLOBAL_PROTECTED_AREAS_VERS = "v0.2"
-LEVEES_VERS = "v0.2"
+GLOBAL_PROTECTED_AREAS_VERS = "v0.1"
+US_PROTECTED_AREAS_VERS = "v0.1"
+LEVEES_VERS = "v0.1"
 GPW_VERS = "v4rev11"
 LANDSCAN_YEAR = "2019"
 LANDSCAN_VERS = f"LandScan Global {LANDSCAN_YEAR}"
@@ -30,6 +31,7 @@ UN_AMA_DATESTAMP = "20220329"
 IMF_WEO_VERS = "October_2021"
 UN_WPP_VERS = "2019"
 IIASA_PROJECTIONS_DOWNLOAD_VERS = "2018"
+CIA_WFB_VERS = "20220408"
 
 # Definitions
 SPATIAL_WARNINGS_TO_IGNORE = [
@@ -415,17 +417,7 @@ EXPOSURE_BIN_WIDTH_H = 1 / 10  # 10cm
 HIGHEST_WITHELEV_EXPOSURE_METERS = 20
 ELEV_CAP = HIGHEST_WITHELEV_EXPOSURE_METERS + 1  # "higher than coastal" value
 
-## Spatial
-
-# Area, in "square degrees", above which we will consider endorheic basins as protected areas
-# N.B. this is an arbitrary choice (something more robust could use something like a bathtub model
-# over a highly resolved elevation grid).
-MIN_BASIN_TILE_DEGREE_AREA = 20.0
-
-# minimum distance in degrees from the ocean to include an endorheic basin as
-# a "protected area"
-ENDORHEIC_BASIN_OCEAN_BUFFER = 0.2
-
+# Spatial
 MAX_VORONOI_COMPLEXITY = (
     40e6  # Maximum number of initial points in shapefile when generating Voronoi
 )
@@ -467,8 +459,7 @@ DIR_IFILES_RAW = DIR_SLR_RAW / "ifiles"
 DIR_IFILES_INT = DIR_SLR_INT / "ifiles"
 PATH_SLR_N_GCMS = fuse_to_gcsmap(DIR_SLR_INT / f"numGCMs_{SLIIDERS_VERS}.zarr", FS)
 
-DIR_GEOG_RAW = DIR_DATA_RAW / "geography"
-DIR_GEOG_INT = DIR_DATA_INT / "geography"
+DIR_GEOGRAPHY_INT = DIR_DATA_INT / "geography"
 
 PATH_CIAM_2016 = fuse_to_gcsmap(
     DIR_DATA_RAW / "CIAM_2016" / "diaz2016_inputs_raw.zarr", FS
@@ -481,13 +472,13 @@ PATH_SLIIDERS_SLR = fuse_to_gcsmap(
     DIR_RESULTS / f"sliiders-slr-{SLIIDERS_VERS}.zarr", FS
 )
 
-PATH_SEG_CENTROIDS = DIR_GEOG_INT / "gtsm_stations_thinned_ciam"
+PATH_SEG_CENTROIDS = DIR_GEOGRAPHY_INT / "gtsm_stations_thinned_ciam"
 
-PATH_CIAM_COASTLINES = DIR_GEOG_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
+PATH_CIAM_COASTLINES = DIR_GEOGRAPHY_INT / "ne_coastline_lines_CIAM_wexp_or_gtsm"
 
-DIR_GTSM_STATIONS_TOTHIN = DIR_GEOG_RAW / "gtsm_stations_eur_tothin"
-
-DIR_CIAM_VORONOI = DIR_GEOG_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
+DIR_CIAM_VORONOI = (
+    DIR_GEOGRAPHY_INT / "ciam_and_adm1_intersections" / EXPOSURE_BINNED_VERS
+)
 PATH_CIAM_ADM1_VORONOI_INTERSECTIONS = (
     DIR_CIAM_VORONOI / "ciam_and_adm1_intersections.parquet"
 )
@@ -513,10 +504,7 @@ PATH_EXPOSURE_BLENDED = (
     / "LitPop_pc_30arcsec.parquet"
 )
 
-PATH_NATURALEARTH_OCEAN = DIR_SHAPEFILES / "natural_earth" / "ne_10m_ocean"
-DIR_HYDROBASINS_RAW = DIR_DATA_RAW / "hydrosheds" / "hydrobasins"
-
-DIR_GLOBAL_PROTECTED_AREAS = (
+DIR_GLOBAL_PROTECTED_AREAS = Path(
     DIR_EXPOSURE_INT
     / "protected_locations"
     / "global"
@@ -524,17 +512,6 @@ DIR_GLOBAL_PROTECTED_AREAS = (
     / GLOBAL_PROTECTED_AREAS_VERS
 )
 
-PATH_US_MANUAL_PROTECTED_AREAS = (
-    DIR_EXPOSURE_RAW
-    / "protected_areas"
-    / "usa"
-    / "manual"
-    / "us_manual_protected_areas.parquet"
-)
-
-PATH_MANUAL_PROTECTED_AREAS = (
-    DIR_GLOBAL_PROTECTED_AREAS / "manual_global_basins.parquet"
-)
 PATH_GLOBAL_PROTECTED_AREAS = DIR_GLOBAL_PROTECTED_AREAS / "all_protected_areas.parquet"
 
 DIR_WETLANDS_RAW = DIR_DATA_RAW / "wetlands_mangroves"
@@ -594,13 +571,8 @@ PATH_EXPOSURE_BINNED_WITHELEV = (
     DIR_EXPOSURE_BINNED / EXPOSURE_BINNED_VERS / "binned_exposure_withelev_base.parquet"
 )
 
-DIR_GEOG_DATUMS_RAW = DIR_GEOG_RAW / "datum_conversions"
+DIR_GEOG_INT = DIR_DATA_INT / "geography"
 DIR_GEOG_DATUMS_INT = DIR_GEOG_INT / "datum_conversions"
-
-DIR_GEOG_DATUMS_EGM96_WGS84 = DIR_GEOG_DATUMS_RAW / "egm96"
-DIR_GEOG_DATUMS_XGM2019e_WGS84 = DIR_GEOG_DATUMS_RAW / "xgm2019e"
-
-PATH_GEOG_MDT_RAW = DIR_GEOG_RAW / "mdt" / "aviso_2018" / "mdt_cnes_cls18_global.nc"
 
 PATH_GEOG_DATUMS_GRID = fuse_to_gcsmap(
     DIR_GEOG_DATUMS_INT / f"datum_conversions_gridded_{DATUM_CONVERSION_VERS}.zarr", FS
@@ -623,6 +595,10 @@ PATH_COUNTRY_LEVEL_EXPOSURE_PROJ = (
     DIR_YPK_FINAL / "gdp_gdppc_pop_capital_proj_2010_2100.parquet"
 )
 
+DIR_CIA_RAW = DIR_YPK_RAW / "cia_wfb"
+PATH_CIA_INT = (
+    DIR_YPK_INT / "cia_wfb" / CIA_WFB_VERS / "cia_wfb_constant_2017_ppp_usd.parquet"
+)
 DIR_UN_AMA_RAW = DIR_YPK_RAW / "un_ama" / UN_AMA_DATESTAMP
 DIR_UN_WPP_RAW = DIR_YPK_RAW / "un_wpp" / UN_WPP_VERS
 DIR_WB_WDI_RAW = DIR_YPK_RAW / "wb_wdi" / WB_WDI_DATESTAMP
